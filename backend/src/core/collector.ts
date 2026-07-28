@@ -390,14 +390,20 @@ export async function collect(
   }
 
   // ---- Arquivos auxiliares, DNS e TLS -------------------------------------
-  report('Verificando robots.txt, llms.txt, sitemap, DNS e TLS…');
-  const [robotsTxt, llmsTxt, llmsFullTxt, dnsResult, tlsResult] = await Promise.all([
-    fetchText(`${origin}/robots.txt`),
-    fetchText(`${origin}/llms.txt`),
-    fetchText(`${origin}/llms-full.txt`),
-    inspectDns(target.hostname),
-    target.protocol === 'https:' ? inspectTls(target.hostname) : Promise.resolve(null),
-  ]);
+  report('Verificando robots.txt, llms.txt, security.txt, sitemap, DNS e TLS…');
+  const [robotsTxt, llmsTxt, llmsFullTxt, securityTxt, securityTxtRoot, dnsResult, tlsResult] =
+    await Promise.all([
+      fetchText(`${origin}/robots.txt`),
+      fetchText(`${origin}/llms.txt`),
+      fetchText(`${origin}/llms-full.txt`),
+      fetchText(`${origin}/.well-known/security.txt`),
+      fetchText(`${origin}/security.txt`),
+      inspectDns(target.hostname),
+      target.protocol === 'https:' ? inspectTls(target.hostname) : Promise.resolve(null),
+    ]);
+
+  // A localização canônica é /.well-known/security.txt; /security.txt é fallback.
+  const security = securityTxt?.ok ? securityTxt : securityTxtRoot?.ok ? securityTxtRoot : securityTxt;
 
   const sitemaps = await collectSitemaps(origin, robotsTxt?.ok ? robotsTxt.text : null);
 
@@ -431,6 +437,7 @@ export async function collect(
     robotsTxt,
     llmsTxt,
     llmsFullTxt,
+    securityTxt: security,
     sitemaps,
     dom,
     cookies,

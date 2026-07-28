@@ -78,6 +78,7 @@ export const CATEGORY_LABELS: Record<CategoryId, string> = {
   geo: 'GEO',
   content: 'Conteúdo',
   security: 'Segurança',
+  protection: 'Proteção & Exposição',
   accessibility: 'Acessibilidade',
   infrastructure: 'Infraestrutura',
   mobile: 'Mobile',

@@ -6,7 +6,7 @@ export type Impact = 'alto' | 'medio' | 'baixo';
 export type Difficulty = 'facil' | 'media' | 'dificil';
 
 export type CategoryId =
-  | 'performance' | 'seo' | 'geo' | 'content' | 'security'
+  | 'performance' | 'seo' | 'geo' | 'content' | 'security' | 'protection'
   | 'accessibility' | 'infrastructure' | 'mobile' | 'ux';
 
 export interface Issue {

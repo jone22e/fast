@@ -99,6 +99,7 @@ plugins/
     content/       clareza, legibilidade, redundância, propaganda
     accessibility/ contraste, alt, rótulos, teclado, marcos
     security/      HTTPS, certificado, cabeçalhos, cookies, mixed content
+    protection/    WAF, exposição de IP, SQL injection (passivo), security.txt
     infrastructure/HTTP/2-3, compressão, cache, CDN, DNS, IPv6
     mobile/        viewport, responsividade, fontes, alvos de toque
     ux/            consistência, navegação, CTAs, formulários
@@ -181,6 +182,30 @@ Todas as opções ficam em `.env` (criado a partir de `.env.example` no `make in
 mantém um Chromium com dois contextos. Em uma VPS de 2 GB, mantenha em 1 ou 2.
 
 ---
+
+## Módulo Proteção & Exposição
+
+Avalia a postura de segurança do **site auditado**, de forma **estritamente passiva** —
+analisa apenas o que o site já devolve (cabeçalhos, cookies, HTML e a estrutura de
+links/formulários). Nenhum payload de ataque é enviado.
+
+Verifica: presença de WAF/firewall, exposição do IP de origem, vazamento de IP interno,
+divulgação de versão/tecnologia, vazamento de erros de banco (indício de suscetibilidade
+a SQL injection), stack traces expostos, superfície de parâmetros, `security.txt` e
+listagem de diretórios.
+
+**Por que passivo, e não um scanner de injeção ativo:** a FAST é uma ferramenta pública
+sem autenticação, onde qualquer visitante aponta para qualquer URL. Disparar payloads de
+SQL injection contra sites de terceiros seria teste de intrusão não autorizado — e um
+login não resolve isso, porque estar autenticado não prova ser dono do domínio alvo.
+Teste ativo exige verificação de propriedade do alvo (registro DNS TXT, arquivo de
+verificação), que é uma funcionalidade à parte. A avaliação passiva responde "o site tem
+as proteções?" sem atacar ninguém.
+
+A detecção de WAF **confirma** um firewall quando ele se identifica, mas não prova
+ausência — muitos WAFs não deixam rastro nos cabeçalhos. Por isso "não confirmado" é
+tratado como alerta, não como certeza de falha, e não derruba a nota de sites com borda
+proprietária (GitHub, por exemplo, pontua ~87 mesmo sem WAF fingerprintável).
 
 ## Notas operacionais
 

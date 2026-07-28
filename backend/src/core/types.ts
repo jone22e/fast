@@ -16,6 +16,7 @@ export type CategoryId =
   | 'geo'
   | 'content'
   | 'security'
+  | 'protection'
   | 'accessibility'
   | 'infrastructure'
   | 'mobile'
@@ -190,6 +191,8 @@ export interface AuditContext {
   robotsTxt: FetchedText | null;
   llmsTxt: FetchedText | null;
   llmsFullTxt: FetchedText | null;
+  /** /.well-known/security.txt (RFC 9116) — política de divulgação responsável. */
+  securityTxt: FetchedText | null;
   sitemaps: SitemapInfo[];
   /** Dados extraídos do DOM renderizado. */
   dom: DomSnapshot;

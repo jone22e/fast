@@ -5,6 +5,7 @@ import geo from './geo/index.js';
 import infrastructure from './infrastructure/index.js';
 import mobile from './mobile/index.js';
 import performance from './performance/index.js';
+import protection from './protection/index.js';
 import security from './security/index.js';
 import seo from './seo/index.js';
 import ux from './ux/index.js';
@@ -21,6 +22,7 @@ export function registerAllPlugins(): void {
   registerPlugin(content);
   registerPlugin(accessibility);
   registerPlugin(security);
+  registerPlugin(protection);
   registerPlugin(infrastructure);
   registerPlugin(mobile);
   registerPlugin(ux);
