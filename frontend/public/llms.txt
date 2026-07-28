@@ -1,0 +1,23 @@
+# FAST
+
+> FAST é uma plataforma de auditoria web que analisa qualquer site sob demanda e gera um relatório técnico e visual sobre performance, SEO, GEO (Generative Engine Optimization), conteúdo, acessibilidade, segurança, proteção, infraestrutura, mobile e UX — com um plano de ação interpretado por inteligência artificial. A análise roda sem cadastro, sem banco de dados e sem armazenamento: o resultado existe apenas durante a execução.
+
+## Recursos principais
+- [Página inicial](https://fast.openflexi.com/): informe a URL de um site e receba a auditoria completa em segundos.
+- [API de auditoria (JSON)](https://fast.openflexi.com/api/audit): endpoint REST que devolve o relatório completo; use `?url=https://exemplo.com`.
+- [Auditoria em tempo real (SSE)](https://fast.openflexi.com/api/audit/stream): mesma auditoria com progresso evento a evento.
+- [Módulos disponíveis](https://fast.openflexi.com/api/modules): lista dos módulos de auditoria e suas verificações.
+
+## O que a FAST avalia
+- Performance: Core Web Vitals (LCP, CLS, INP, FCP, TTFB, Speed Index, TBT), peso de imagens, JavaScript, CSS e fontes, lazy loading, compressão e cache.
+- SEO tradicional: title, meta description, canonical, robots, headings, links quebrados, sitemap.xml, robots.txt, Open Graph e Twitter Cards.
+- GEO: existência e estrutura de llms.txt e llms-full.txt, permissões de rastreadores de IA (GPTBot, ClaudeBot, Google-Extended, PerplexityBot e outros), conteúdo amigável para IA, autoridade, estrutura semântica e Schema.org.
+- Conteúdo: clareza, profundidade, legibilidade, redundância e escaneabilidade.
+- Acessibilidade: contraste, textos alternativos, rótulos de formulário, navegação por teclado e marcos semânticos.
+- Segurança: HTTPS, certificado, HSTS, CSP, cabeçalhos, cookies e conteúdo misto.
+- Proteção e exposição: WAF, exposição do IP de origem, vazamento de chaves e senhas, sinais de suscetibilidade a SQL injection e política de divulgação.
+- Infraestrutura: HTTP/2 e HTTP/3, compressão, cache, CDN, DNS e IPv6.
+- Mobile e UX: responsividade, tamanho de fontes e alvos de toque, navegação, hierarquia visual e formulários.
+
+## Diferencial sobre o Google PageSpeed
+A FAST cobre também a otimização para mecanismos de IA (ChatGPT, Claude, Gemini, Perplexity e Copilot): valida llms.txt, permissões de rastreadores, dados estruturados e sinais de autoridade, e explica cada problema com prioridade, tempo estimado e ganho esperado.

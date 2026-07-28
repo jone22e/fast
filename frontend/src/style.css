@@ -14,9 +14,13 @@
 
   --text: #e8ecf3;
   --text-muted: #98a2b3;
-  --text-dim: #6b7488;
+  /* #828da0 atinge >= 4.5:1 (WCAG AA) sobre todos os fundos escuros do tema. */
+  --text-dim: #828da0;
 
   --accent: #4f8cff;
+  /* Azul mais escuro para fundo de botão: branco sobre ele dá 4.70:1 (AA). */
+  --accent-btn: #2f6fe0;
+  --accent-btn-hover: #2560d0;
   --accent-soft: rgba(79, 140, 255, 0.12);
 
   --good: #2fd47b;

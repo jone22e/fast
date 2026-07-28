@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import AiPanel from './AiPanel.vue';
+import ActionPlan from './ActionPlan.vue';
+import AiDrawer from './AiDrawer.vue';
 import IssueCard from './IssueCard.vue';
 import ModuleDetail from './ModuleDetail.vue';
 import ScoreRing from './ScoreRing.vue';
@@ -12,6 +13,7 @@ const props = defineProps<{ report: AuditReport }>();
 const filterCategory = ref<CategoryId | 'all'>('all');
 const filterSeverity = ref<Severity | 'all'>('all');
 const checked = ref<Set<string>>(new Set());
+const aiOpen = ref(false);
 
 const categoryLabels = computed(() => {
   const map = new Map<CategoryId, string>();
@@ -42,11 +44,36 @@ function toggle(id: string): void {
 }
 
 function exportJson(): void {
-  const blob = new Blob([JSON.stringify(props.report, null, 2)], { type: 'application/json' });
+  // Export autoexplicativo: o relatório completo (todos os módulos, verificações,
+  // evidências e a análise da IA) mais um cabeçalho que orienta uma IA externa a
+  // interpretá-lo. Assim o usuário pode exportar e colar em um chat de IA.
+  const r = props.report;
+  const payload = {
+    _formato: 'Relatório de auditoria web FAST',
+    _versao: 1,
+    _instrucoes:
+      'Este é o relatório completo de uma auditoria automatizada do site abaixo. ' +
+      'Cada módulo tem nota de 0 a 100, verificações (checks) com o valor medido, e problemas ' +
+      '(issues) com gravidade, impacto, dificuldade, tempo estimado de correção, como corrigir ' +
+      '(howToFix), ganho esperado (expectedGain) e evidências. O campo "ai" traz uma análise em ' +
+      'linguagem natural. Use estes dados para explicar os problemas, priorizar e detalhar as ' +
+      'correções. Não invente métricas que não estejam aqui.',
+    _glossario: {
+      overallScore: 'Nota geral de 0 a 100.',
+      categories: 'Nota, peso e nº de problemas por categoria.',
+      plugins: 'Cada módulo de auditoria: checks (verificações), issues (problemas) e evidence (evidências brutas).',
+      issues: 'Lista consolidada de problemas, ordenada por prioridade.',
+      ai: 'Interpretação por IA: resumo, prioridades, impactos, ganhos e plano de ação.',
+      checklist: 'Itens de correção derivados dos problemas.',
+      summary: 'Contagem de problemas por gravidade e tempo total estimado.',
+    },
+    ...r,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `fast-audit-${new URL(props.report.finalUrl).hostname}-${Date.now()}.json`;
+  a.download = `fast-audit-${new URL(r.finalUrl).hostname}-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -118,8 +145,27 @@ function exportJson(): void {
       </article>
     </section>
 
-    <!-- ---------- Análise por IA ---------- -->
-    <AiPanel :ai="report.ai" />
+    <!-- ---------- Gatilho da análise por IA ---------- -->
+    <section v-if="report.ai.available" class="ai-trigger card fade-up" @click="aiOpen = true">
+      <img class="ai-icon" src="/favicon.svg" alt="" width="40" height="40" />
+      <div class="ai-text">
+        <span class="ai-badge">Análise por IA</span>
+        <p>{{ report.ai.executiveSummary }}</p>
+      </div>
+      <button class="ai-open" @click.stop="aiOpen = true">
+        Abrir análise
+        <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+          <path d="M5 3l5 4.5L5 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </section>
+
+    <div v-else-if="report.ai.error" class="ai-off card">
+      <p class="muted">{{ report.ai.error }}</p>
+    </div>
+
+    <!-- ---------- Plano de ação (permanece na página) ---------- -->
+    <ActionPlan :plan="report.ai.actionPlan" />
 
     <!-- ---------- Problemas encontrados ---------- -->
     <section class="issues card">
@@ -185,6 +231,19 @@ function exportJson(): void {
         </li>
       </ul>
     </section>
+
+    <!-- ---------- Drawer da IA + botão flutuante ---------- -->
+    <AiDrawer :ai="report.ai" :open="aiOpen" @close="aiOpen = false" />
+
+    <button
+      v-if="report.ai.available && !aiOpen"
+      class="ai-fab"
+      aria-label="Abrir análise por IA"
+      @click="aiOpen = true"
+    >
+      <img src="/favicon.svg" alt="" width="26" height="26" />
+      <span>Análise IA</span>
+    </button>
   </div>
 </template>
 
@@ -192,6 +251,129 @@ function exportJson(): void {
 .report {
   display: grid;
   gap: 22px;
+}
+
+/* ---------- gatilho da IA ---------- */
+
+.ai-trigger {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 24px;
+  cursor: pointer;
+  background: linear-gradient(160deg, rgba(79, 140, 255, 0.09), var(--bg-card) 55%);
+  border-color: rgba(79, 140, 255, 0.28);
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.ai-trigger:hover {
+  border-color: rgba(79, 140, 255, 0.5);
+}
+
+.ai-icon {
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.ai-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.ai-text p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ai-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  background: var(--accent-btn);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 9px 16px;
+  transition: background 0.2s;
+}
+
+.ai-open:hover {
+  background: var(--accent-btn-hover);
+}
+
+.ai-off {
+  padding: 18px 22px;
+}
+
+/* ---------- botão flutuante ---------- */
+
+.ai-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 17px 11px 12px;
+  border-radius: 30px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.15s, border-color 0.2s;
+  animation: fade-up 0.4s ease both;
+}
+
+.ai-fab img {
+  border-radius: 7px;
+}
+
+.ai-fab:hover {
+  transform: translateY(-2px);
+  border-color: rgba(79, 140, 255, 0.5);
+}
+
+@media (max-width: 640px) {
+  .ai-trigger {
+    flex-wrap: wrap;
+  }
+
+  .ai-open {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ai-fab span {
+    display: none;
+  }
+
+  .ai-fab {
+    padding: 12px;
+    right: 16px;
+    bottom: 16px;
+  }
 }
 
 /* ---------- hero ---------- */

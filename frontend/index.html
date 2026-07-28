@@ -15,6 +15,106 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#0a0c10" />
+
+    <link rel="canonical" href="https://fast.openflexi.com/" />
+    <meta name="author" content="OpenFlexi" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FAST" />
+    <meta property="og:title" content="FAST — Auditoria completa de sites: performance, SEO, GEO e IA" />
+    <meta
+      property="og:description"
+      content="Analise qualquer site em segundos: Core Web Vitals, SEO técnico, GEO (otimização para ChatGPT, Claude, Gemini e Perplexity), acessibilidade, segurança e infraestrutura — com plano de ação gerado por IA."
+    />
+    <meta property="og:url" content="https://fast.openflexi.com/" />
+    <meta property="og:image" content="https://fast.openflexi.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FAST — Auditoria completa de sites" />
+    <meta
+      name="twitter:description"
+      content="Performance, SEO, GEO, segurança e acessibilidade em segundos, com plano de ação por IA."
+    />
+    <meta name="twitter:image" content="https://fast.openflexi.com/og.png" />
+
+    <!-- Dados estruturados (Schema.org) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://fast.openflexi.com/#org",
+            "name": "OpenFlexi",
+            "url": "https://openflexi.com/",
+            "logo": "https://fast.openflexi.com/icon-512.png"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://fast.openflexi.com/#site",
+            "url": "https://fast.openflexi.com/",
+            "name": "FAST",
+            "inLanguage": "pt-BR",
+            "publisher": { "@id": "https://fast.openflexi.com/#org" }
+          },
+          {
+            "@type": "SoftwareApplication",
+            "name": "FAST",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web",
+            "url": "https://fast.openflexi.com/",
+            "description": "Plataforma de auditoria web que analisa performance, SEO, GEO, acessibilidade, segurança e infraestrutura de qualquer site, com plano de ação gerado por IA.",
+            "author": { "@id": "https://fast.openflexi.com/#org" },
+            "datePublished": "2026-07-28",
+            "dateModified": "2026-07-28",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "A FAST substitui o Google PageSpeed?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A FAST cobre performance como o PageSpeed e vai além: avalia SEO técnico, GEO (otimização para IA), acessibilidade, segurança, proteção contra ataques e UX, explicando cada problema com prioridade, tempo estimado e ganho esperado."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "A FAST guarda os resultados das auditorias?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Não. Não há cadastro nem banco de dados. O relatório existe apenas durante a execução e é descartado ao final."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "O que é o módulo GEO?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "GEO é a otimização para mecanismos de IA como ChatGPT, Claude, Gemini e Perplexity. A FAST valida llms.txt, permissões de rastreadores de IA, dados estruturados e sinais de autoridade."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "A FAST realiza testes de invasão?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Não. A avaliação de segurança e proteção é estritamente passiva: analisa apenas o que o site já devolve, sem enviar nenhum payload de ataque."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>

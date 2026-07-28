@@ -1,0 +1,58 @@
+# FAST — Plataforma de auditoria web
+
+> FAST analisa qualquer website sob demanda e gera um relatório técnico e visual sobre dez dimensões de qualidade, com um plano de ação priorizado e interpretado por inteligência artificial. Não exige cadastro, não usa banco de dados e não armazena resultados: a análise existe apenas durante a execução e é descartada ao final.
+
+## Como funciona
+
+1. Você informa a URL de um site.
+2. A FAST abre a página em um navegador Chromium real (desktop e mobile), coleta métricas de performance, rede, DOM, DNS e TLS em uma única passagem.
+3. Dez módulos de auditoria independentes analisam essa coleta em paralelo.
+4. Os resultados são consolidados em notas de 0 a 100 por categoria e uma nota geral.
+5. Um modelo de linguagem interpreta o relatório e produz um resumo executivo, a priorização e um plano de ação.
+6. O resultado é exibido e descartado — nada é persistido.
+
+## Módulos de auditoria
+
+### Performance
+Analisa os Core Web Vitals — LCP, CLS, INP, FCP, TTFB, Speed Index e Total Blocking Time — além do peso de imagens, JavaScript, CSS, fontes e vídeos, do uso de lazy loading, preload e prefetch, de recursos que bloqueiam a renderização, do tamanho do bundle, do número de requisições, da compressão (Brotli e Gzip) e do cache.
+
+### SEO tradicional
+Verifica title, meta description, canonical, meta robots, viewport e charset; a hierarquia de headings (H1 único, saltos de nível, headings vazios); links internos, externos, quebrados e redirecionamentos; a existência e validade de sitemap.xml; as regras do robots.txt; e os cartões sociais Open Graph e Twitter.
+
+### GEO — Generative Engine Optimization
+Avalia a otimização para mecanismos de IA. Verifica a existência e a estrutura de llms.txt e llms-full.txt; as permissões no robots.txt para rastreadores como GPTBot, OAI-SearchBot, ClaudeBot, Google-Extended, PerplexityBot, CCBot, Bingbot, Amazonbot e Applebot; se o conteúdo é amigável para IA (definições claras, FAQs, listas, tabelas, passo a passo e resumos); os sinais de autoridade (autor, datas de publicação e atualização, referências); a estrutura semântica (article, main, nav, section, aside, figure, header, footer, time); e os dados estruturados Schema.org (Organization, Product, FAQPage, Article, Breadcrumb e outros). Gera uma nota específica de consumo por LLMs, o IA Score.
+
+### Conteúdo
+Avalia clareza, profundidade, legibilidade, redundância, excesso de palavras-chave, escaneabilidade e excesso de linguagem promocional, detectando conteúdo raso ou duplicado.
+
+### Acessibilidade
+Valida contraste de cores segundo a WCAG, textos alternativos em imagens, rótulos de formulário, uso de ARIA, tabindex, marcos de navegação e idioma declarado.
+
+### Segurança
+Verifica HTTPS, validade do certificado, HSTS, Content-Security-Policy, X-Frame-Options, Referrer-Policy, Permissions-Policy, X-Content-Type-Options, as flags dos cookies (Secure, HttpOnly, SameSite) e a presença de conteúdo misto.
+
+### Proteção e Exposição
+Avaliação passiva da postura de segurança: detecção de WAF/firewall, exposição do IP externo de origem, vazamento de chaves e senhas no código servido, sinais passivos de suscetibilidade a SQL injection (vazamento de erros de banco), transporte seguro de senha e a existência de uma política de divulgação (security.txt). Nenhum payload de ataque é enviado.
+
+### Infraestrutura
+Verifica HTTP/2 e HTTP/3, compressão, Cache-Control e validadores, CDN, DNS, IPv6 e a cadeia de redirecionamentos.
+
+### Mobile
+Avalia o viewport, a responsividade (rolagem horizontal), o tamanho das fontes e dos alvos de toque, o CLS em mobile e o uso de imagens responsivas.
+
+### UX
+Verifica consistência tipográfica, paleta de cores, navegação, hierarquia visual, chamadas para ação, formulários e o tempo até a interatividade.
+
+## Perguntas frequentes
+
+### A FAST substitui o Google PageSpeed?
+A FAST cobre o que o PageSpeed cobre em performance e vai além: avalia SEO técnico, GEO (otimização para IA), acessibilidade, segurança, proteção contra ataques e UX, e explica cada problema com prioridade, tempo estimado e ganho esperado.
+
+### A FAST guarda os resultados das auditorias?
+Não. Não há cadastro nem banco de dados. O relatório existe apenas durante a execução e é descartado ao final.
+
+### O que é o módulo GEO?
+GEO significa Generative Engine Optimization — a otimização para que o site seja lido e citado corretamente por mecanismos de IA como ChatGPT, Claude, Gemini e Perplexity. A FAST valida llms.txt, permissões de rastreadores de IA, dados estruturados e sinais de autoridade.
+
+### A FAST realiza testes de invasão?
+Não. A avaliação de segurança e proteção é estritamente passiva: analisa apenas o que o site já devolve, sem enviar nenhum payload de ataque.

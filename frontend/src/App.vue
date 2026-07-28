@@ -1,14 +1,45 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import ProgressPanel from './components/ProgressPanel.vue';
 import ReportView from './components/ReportView.vue';
 import { useAudit } from '@/composables/useAudit';
 
 const url = ref('');
-const aiEnabled = ref(false);
 const audit = useAudit();
 
 const EXAMPLES = ['vuejs.org', 'wikipedia.org', 'github.com'];
+
+const DIMENSIONS = [
+  { name: 'Performance', desc: 'Core Web Vitals, peso de recursos e estratégia de carregamento.' },
+  { name: 'SEO', desc: 'Title, meta tags, headings, links, sitemap, robots e cartões sociais.' },
+  { name: 'GEO', desc: 'llms.txt, permissões de rastreadores de IA, semântica e Schema.org.' },
+  { name: 'Conteúdo', desc: 'Clareza, profundidade, legibilidade e escaneabilidade.' },
+  { name: 'Acessibilidade', desc: 'Contraste, alt, rótulos, teclado e marcos semânticos.' },
+  { name: 'Segurança', desc: 'HTTPS, certificado, cabeçalhos, cookies e conteúdo misto.' },
+  { name: 'Proteção', desc: 'WAF, exposição de IP, chaves e senhas e sinais de SQL injection.' },
+  { name: 'Infraestrutura', desc: 'HTTP/2 e 3, compressão, cache, CDN, DNS e IPv6.' },
+  { name: 'Mobile', desc: 'Viewport, responsividade, fontes e alvos de toque.' },
+  { name: 'UX', desc: 'Navegação, hierarquia visual, CTAs e formulários.' },
+];
+
+const FAQ = [
+  {
+    q: 'A FAST substitui o Google PageSpeed?',
+    a: 'A FAST cobre performance como o PageSpeed e vai além: avalia SEO técnico, GEO (otimização para IA), acessibilidade, segurança, proteção contra ataques e UX, explicando cada problema com prioridade, tempo estimado e ganho esperado.',
+  },
+  {
+    q: 'A FAST guarda os resultados das auditorias?',
+    a: 'Não. Não há cadastro nem banco de dados. O relatório existe apenas durante a execução e é descartado ao final.',
+  },
+  {
+    q: 'O que é o módulo GEO?',
+    a: 'GEO é a otimização para mecanismos de IA como ChatGPT, Claude, Gemini e Perplexity. A FAST valida llms.txt, permissões de rastreadores de IA, dados estruturados e sinais de autoridade.',
+  },
+  {
+    q: 'A FAST realiza testes de invasão?',
+    a: 'Não. A avaliação de segurança e proteção é estritamente passiva: analisa apenas o que o site já devolve, sem enviar nenhum payload de ataque.',
+  },
+];
 
 function submit(): void {
   const value = url.value.trim();
@@ -26,16 +57,6 @@ function newAudit(): void {
   audit.reset();
   url.value = '';
 }
-
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/health');
-    const data = (await res.json()) as { aiEnabled?: boolean };
-    aiEnabled.value = Boolean(data.aiEnabled);
-  } catch {
-    // Health check é informativo; falha não bloqueia o uso.
-  }
-});
 </script>
 
 <template>
@@ -92,10 +113,42 @@ onMounted(async () => {
             {{ e }}
           </button>
         </p>
+      </section>
 
-        <ul v-if="aiEnabled" class="badges">
-          <li>Análise por IA ativa</li>
+      <!-- ---------- Conteúdo institucional (SEO/GEO) ---------- -->
+      <section v-if="!audit.report.value && !audit.running.value" class="learn" aria-labelledby="learn-title">
+        <header class="learn-head">
+          <h2 id="learn-title">O que a FAST analisa</h2>
+          <p>
+            Uma auditoria da FAST cobre dez dimensões de qualidade de um site, cada uma com uma nota
+            de 0 a 100, os problemas encontrados, a gravidade, como corrigir e o ganho esperado.
+          </p>
+        </header>
+
+        <ul class="dimensions">
+          <li v-for="d in DIMENSIONS" :key="d.name">
+            <strong>{{ d.name }}</strong>
+            <span>{{ d.desc }}</span>
+          </li>
         </ul>
+
+        <article class="how">
+          <h3>Como funciona</h3>
+          <ol>
+            <li>Você informa a URL de um site.</li>
+            <li>A FAST abre a página em um navegador real (desktop e mobile) e coleta métricas de performance, rede, DOM, DNS e TLS.</li>
+            <li>Dez módulos independentes analisam a coleta em paralelo e geram as notas.</li>
+            <li>Uma IA interpreta o relatório e monta o resumo, a priorização e o plano de ação.</li>
+          </ol>
+        </article>
+
+        <article class="faq">
+          <h3>Perguntas frequentes</h3>
+          <details v-for="(f, i) in FAQ" :key="i">
+            <summary>{{ f.q }}</summary>
+            <p>{{ f.a }}</p>
+          </details>
+        </article>
       </section>
 
       <!-- ---------- Erro ---------- -->
@@ -261,7 +314,7 @@ input:focus {
 }
 
 .form button {
-  background: var(--accent);
+  background: var(--accent-btn);
   color: #fff;
   border-radius: var(--radius-sm);
   padding: 13px 26px;
@@ -271,7 +324,7 @@ input:focus {
 }
 
 .form button:not(:disabled):hover {
-  background: #3d7cf0;
+  background: var(--accent-btn-hover);
 }
 
 .form button:not(:disabled):active {
@@ -296,22 +349,121 @@ input:focus {
   border-color: var(--accent);
 }
 
-.badges {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
+/* ---------- conteúdo institucional ---------- */
+
+.learn {
+  max-width: 900px;
+  margin: 8px auto 0;
+  display: grid;
+  gap: 34px;
 }
 
-.badges li {
-  font-size: 12px;
-  color: var(--text-dim);
+.learn-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.learn-head h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.learn-head p {
+  color: var(--text-muted);
+  font-size: 15px;
+  margin: 0;
+}
+
+.dimensions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.dimensions li {
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 3px 12px;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.dimensions strong {
+  display: block;
+  font-size: 14.5px;
+  margin-bottom: 3px;
+}
+
+.dimensions span {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.how,
+.faq {
+  max-width: 680px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.how h3,
+.faq h3 {
+  font-size: 17px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.how ol {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 9px;
+  color: var(--text-muted);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+.faq details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  padding: 0 16px;
+  margin-bottom: 9px;
+}
+
+.faq summary {
+  cursor: pointer;
+  padding: 14px 0;
+  font-size: 14.5px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::before {
+  content: '+';
+  display: inline-block;
+  width: 18px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.faq details[open] summary::before {
+  content: '−';
+}
+
+.faq details p {
+  margin: 0 0 16px 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 /* ---------- erro ---------- */
