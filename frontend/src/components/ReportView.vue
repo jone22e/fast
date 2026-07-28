@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import ActionPlan from './ActionPlan.vue';
-import AiDrawer from './AiDrawer.vue';
+import AiModal from './AiModal.vue';
 import IssueCard from './IssueCard.vue';
 import ModuleDetail from './ModuleDetail.vue';
 import ScoreRing from './ScoreRing.vue';
@@ -9,6 +9,7 @@ import type { AuditReport, CategoryId, Severity } from '@/types';
 import { formatDuration, formatMs, scoreColor, scoreLabel } from '@/utils';
 
 const props = defineProps<{ report: AuditReport }>();
+const emit = defineEmits<{ 'new-audit': [] }>();
 
 const filterCategory = ref<CategoryId | 'all'>('all');
 const filterSeverity = ref<Severity | 'all'>('all');
@@ -81,6 +82,19 @@ function exportJson(): void {
 
 <template>
   <div class="report fade-up">
+    <!-- ---------- Barra de ações ---------- -->
+    <div class="toolbar">
+      <button class="back" @click="emit('new-audit')">← Analisar outro site</button>
+      <button
+        v-if="report.ai.available"
+        class="ai-btn"
+        @click="aiOpen = true"
+      >
+        <img src="/favicon.svg" alt="" width="22" height="22" />
+        Análise IA
+      </button>
+    </div>
+
     <!-- ---------- Cabeçalho com nota geral ---------- -->
     <section class="hero card">
       <div class="ring-wrap">
@@ -232,18 +246,8 @@ function exportJson(): void {
       </ul>
     </section>
 
-    <!-- ---------- Drawer da IA + botão flutuante ---------- -->
-    <AiDrawer :ai="report.ai" :open="aiOpen" @close="aiOpen = false" />
-
-    <button
-      v-if="report.ai.available && !aiOpen"
-      class="ai-fab"
-      aria-label="Abrir análise por IA"
-      @click="aiOpen = true"
-    >
-      <img src="/favicon.svg" alt="" width="26" height="26" />
-      <span>Análise IA</span>
-    </button>
+    <!-- ---------- Modal da IA ---------- -->
+    <AiModal :ai="report.ai" :open="aiOpen" @close="aiOpen = false" />
   </div>
 </template>
 
@@ -324,35 +328,45 @@ function exportJson(): void {
   padding: 18px 22px;
 }
 
-/* ---------- botão flutuante ---------- */
+/* ---------- barra de ações ---------- */
 
-.ai-fab {
-  position: fixed;
-  right: 22px;
-  bottom: 22px;
-  z-index: 50;
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.back {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.back:hover {
+  color: var(--accent);
+}
+
+.ai-btn {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 11px 17px 11px 12px;
-  border-radius: 30px;
+  gap: 8px;
+  padding: 8px 15px 8px 10px;
+  border-radius: 24px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
   color: var(--text);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  transition: transform 0.15s, border-color 0.2s;
-  animation: fade-up 0.4s ease both;
+  transition: border-color 0.2s, background 0.2s;
 }
 
-.ai-fab img {
-  border-radius: 7px;
+.ai-btn img {
+  border-radius: 6px;
 }
 
-.ai-fab:hover {
-  transform: translateY(-2px);
+.ai-btn:hover {
   border-color: rgba(79, 140, 255, 0.5);
+  background: var(--bg-hover);
 }
 
 @media (max-width: 640px) {
@@ -363,16 +377,6 @@ function exportJson(): void {
   .ai-open {
     width: 100%;
     justify-content: center;
-  }
-
-  .ai-fab span {
-    display: none;
-  }
-
-  .ai-fab {
-    padding: 12px;
-    right: 16px;
-    bottom: 16px;
   }
 }
 

@@ -152,9 +152,11 @@ const plugin: AuditPlugin = {
       );
     }
 
-    // Imagens servidas maiores que o espaço de exibição
+    // Imagens servidas maiores que o espaço de exibição.
+    // SVG é vetorial — não há desperdício de bytes por dimensão, então é ignorado.
     const oversized = ctx.dom.images.filter(
       (img) =>
+        img.format !== 'svg' &&
         img.naturalWidth &&
         img.displayWidth &&
         img.displayWidth > 0 &&

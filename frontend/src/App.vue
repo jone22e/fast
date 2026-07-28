@@ -101,8 +101,8 @@ function newAudit(): void {
           </button>
         </form>
 
-        <p class="examples">
-          Experimente:
+        <nav class="examples" aria-label="Sites de exemplo">
+          <span>Experimente:</span>
           <button
             v-for="e in EXAMPLES"
             :key="e"
@@ -112,7 +112,7 @@ function newAudit(): void {
           >
             {{ e }}
           </button>
-        </p>
+        </nav>
       </section>
 
       <!-- ---------- Conteúdo institucional (SEO/GEO) ---------- -->
@@ -121,7 +121,10 @@ function newAudit(): void {
           <h2 id="learn-title">O que a FAST analisa</h2>
           <p>
             Uma auditoria da FAST cobre dez dimensões de qualidade de um site, cada uma com uma nota
-            de 0 a 100, os problemas encontrados, a gravidade, como corrigir e o ganho esperado.
+            de 0 a 100, os problemas encontrados, a gravidade, como corrigir e o ganho esperado. A
+            análise vai além da velocidade: avalia também como o site é lido por mecanismos de
+            inteligência artificial e quão exposto ele está a ataques — dois pontos que a maioria das
+            ferramentas de auditoria ignora, mas que hoje definem visibilidade e disponibilidade.
           </p>
         </header>
 
@@ -149,6 +152,12 @@ function newAudit(): void {
             <p>{{ f.a }}</p>
           </details>
         </article>
+
+        <p class="learn-foot">
+          Cada problema encontrado vem com prioridade, tempo estimado de correção e ganho esperado,
+          para que você saiba exatamente por onde começar. Ao final, uma inteligência artificial
+          interpreta todo o relatório e monta um plano de ação em linguagem clara.
+        </p>
       </section>
 
       <!-- ---------- Erro ---------- -->
@@ -167,12 +176,7 @@ function newAudit(): void {
       />
 
       <!-- ---------- Relatório ---------- -->
-      <template v-if="audit.report.value">
-        <div class="report-actions">
-          <button class="new" @click="newAudit">← Analisar outro site</button>
-        </div>
-        <ReportView :report="audit.report.value" />
-      </template>
+      <ReportView v-if="audit.report.value" :report="audit.report.value" @new-audit="newAudit" />
     </main>
 
     <footer class="foot">
@@ -215,6 +219,7 @@ function newAudit(): void {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-height: 44px;
   text-decoration: none;
   color: var(--text);
 }
@@ -332,24 +337,43 @@ input:focus {
 }
 
 .examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 6px;
   font-size: 13px;
   color: var(--text-dim);
-  margin-bottom: 26px;
+  margin-bottom: 22px;
 }
 
 .example {
   color: var(--text-muted);
-  border-bottom: 1px dashed var(--border-strong);
-  margin: 0 3px;
   font-size: 13px;
+  /* Alvo de toque >= 44px de altura (WCAG 2.5.5 / recomendação mobile). */
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
 }
 
 .example:hover:not(:disabled) {
   color: var(--accent);
-  border-color: var(--accent);
+  border-color: var(--border-strong);
+  background: var(--bg-card);
 }
 
 /* ---------- conteúdo institucional ---------- */
+
+.learn-foot {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+
 
 .learn {
   max-width: 900px;
@@ -495,21 +519,6 @@ input:focus {
 .retry:hover {
   background: var(--bg-hover);
   color: var(--text);
-}
-
-/* ---------- relatório ---------- */
-
-.report-actions {
-  display: flex;
-}
-
-.new {
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.new:hover {
-  color: var(--accent);
 }
 
 /* ---------- rodapé ---------- */
