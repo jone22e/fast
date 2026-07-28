@@ -28,9 +28,27 @@ else
   SSL_MODE="off"
 fi
 
+# A diretiva `http2 on;` só existe a partir do nginx 1.25.1. Em versões
+# anteriores (Ubuntu 22.04 traz a 1.18, a 24.04 traz a 1.24) o HTTP/2 é
+# declarado no próprio `listen`.
+NGINX_VER="$(nginx -v 2>&1 | sed -n 's|.*nginx/\([0-9][0-9.]*\).*|\1|p')"
+
+if [ -n "$NGINX_VER" ] && \
+   [ "$(printf '%s\n1.25.1\n' "$NGINX_VER" | sort -V | head -1)" = "1.25.1" ]; then
+  HTTP2_LISTEN=""
+  HTTP2_DIRECTIVE="http2 on;"
+  log "nginx ${NGINX_VER} — usando a diretiva http2 on."
+else
+  HTTP2_LISTEN=" http2"
+  HTTP2_DIRECTIVE="# HTTP/2 declarado no listen (nginx ${NGINX_VER:-<1.25.1})"
+  log "nginx ${NGINX_VER:-antigo} — HTTP/2 declarado no listen."
+fi
+
 sed -e "s|{{DOMAIN}}|${DOMAIN}|g" \
     -e "s|{{PORT}}|${PORT}|g" \
     -e "s|{{APP_DIR}}|${APP_DIR}|g" \
+    -e "s|{{HTTP2_LISTEN}}|${HTTP2_LISTEN}|g" \
+    -e "s|{{HTTP2_DIRECTIVE}}|${HTTP2_DIRECTIVE}|g" \
     "$TEMPLATE" > "$AVAILABLE"
 
 if [ "$SSL_MODE" = "off" ]; then

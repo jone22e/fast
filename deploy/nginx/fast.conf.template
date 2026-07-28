@@ -43,9 +43,9 @@ server {
 # >>> SSL-BEGIN
 # ---- HTTPS ------------------------------------------------------------------
 server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    http2 on;
+    listen 443 ssl{{HTTP2_LISTEN}};
+    listen [::]:443 ssl{{HTTP2_LISTEN}};
+    {{HTTP2_DIRECTIVE}}
     server_name {{DOMAIN}};
 
     # ---- TLS ----
