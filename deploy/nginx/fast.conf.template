@@ -136,7 +136,8 @@ server {
     location /assets/ {
         # O add_header abaixo cancela a herança; reincluímos os de segurança.
         include /etc/nginx/snippets/fast-security-headers.conf;
-        expires 1y;
+        # Sem `expires` aqui: ele emitiria um segundo Cache-Control, duplicando
+        # o max-age na resposta. O add_header abaixo já cobre tudo.
         add_header Cache-Control "public, max-age=31536000, immutable";
         try_files $uri =404;
     }
