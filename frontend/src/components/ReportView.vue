@@ -11,6 +11,9 @@ import { formatDuration, formatMs, scoreColor, scoreLabel } from '@/utils';
 const props = defineProps<{ report: AuditReport }>();
 const emit = defineEmits<{ 'new-audit': [] }>();
 
+const pdfLoading = ref(false);
+const pdfError = ref(false);
+
 const filterCategory = ref<CategoryId | 'all'>('all');
 const filterSeverity = ref<Severity | 'all'>('all');
 const checked = ref<Set<string>>(new Set());
@@ -78,6 +81,31 @@ function exportJson(): void {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+async function exportPdf(): Promise<void> {
+  if (pdfLoading.value) return;
+  pdfLoading.value = true;
+  pdfError.value = false;
+  try {
+    const res = await fetch('/api/report/pdf', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(props.report),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fast-audit-${new URL(props.report.finalUrl).hostname}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    pdfError.value = true;
+  } finally {
+    pdfLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -134,7 +162,16 @@ function exportJson(): void {
           </div>
         </div>
 
-        <button class="export" @click="exportJson">Exportar relatório (JSON)</button>
+        <div class="exports">
+          <button class="export primary" :disabled="pdfLoading" @click="exportPdf">
+            <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
+              <path d="M7.5 1v8m0 0L4.5 6m3 3l3-3M2.5 11v2h10v-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            {{ pdfLoading ? 'Gerando PDF…' : 'Exportar PDF' }}
+          </button>
+          <button class="export" @click="exportJson">Exportar JSON</button>
+        </div>
+        <p v-if="pdfError" class="pdf-error">Não foi possível gerar o PDF. Tente novamente.</p>
       </div>
     </section>
 
@@ -445,18 +482,45 @@ function exportJson(): void {
   letter-spacing: 0.05em;
 }
 
+.exports {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
 .export {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 8px 15px;
   font-size: 13.5px;
   color: var(--text-muted);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.export:hover {
+.export:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.export.primary {
+  background: var(--accent-btn);
+  border-color: var(--accent-btn);
+  color: #fff;
+}
+
+.export.primary:hover:not(:disabled) {
+  background: var(--accent-btn-hover);
+  border-color: var(--accent-btn-hover);
+  color: #fff;
+}
+
+.pdf-error {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: var(--bad);
 }
 
 /* ---------- categorias ---------- */

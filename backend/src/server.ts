@@ -9,6 +9,7 @@ import { aiEnabled, config, isProduction } from './config.js';
 import { closeBrowser } from './core/browser.js';
 import { registerAllPlugins } from './plugins/index.js';
 import { auditRoutes } from './routes/audit.js';
+import { reportRoutes } from './routes/report.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const frontendDist = path.resolve(here, '../../frontend/dist');
@@ -46,6 +47,7 @@ async function main(): Promise<void> {
   }));
 
   await app.register(auditRoutes);
+  await app.register(reportRoutes);
 
   // Em produção o próprio Fastify serve o frontend compilado.
   if (existsSync(frontendDist)) {
