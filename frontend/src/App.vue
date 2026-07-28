@@ -43,7 +43,7 @@ onMounted(async () => {
     <header class="top">
       <div class="container top-inner">
         <a class="brand" href="/">
-          <span class="mark" aria-hidden="true">⚡</span>
+          <img class="mark" src="/favicon.svg" alt="" width="26" height="26" />
           <span class="name">FAST</span>
         </a>
         <span class="tagline">Auditoria web completa — performance, SEO, GEO e IA</span>
@@ -171,7 +171,10 @@ onMounted(async () => {
 }
 
 .mark {
-  font-size: 19px;
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
 }
 
 .name {

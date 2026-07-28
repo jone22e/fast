@@ -146,7 +146,15 @@ function extractJson(text: string): string | null {
   return null;
 }
 
-/** Chama o Ollama /api/generate e devolve o texto gerado. */
+/**
+ * Chama o Ollama /api/generate e devolve o texto gerado.
+ *
+ * Espelha a configuração comprovada no Flexi: `think: false` (desliga o
+ * raciocínio do Qwen3, que senão suja a saída), cabeçalho Authorization,
+ * keep_alive para manter o modelo carregado, e num_predict alto para a
+ * resposta longa em JSON não ser truncada. NÃO usa format:"json" — instruímos
+ * no prompt e extraímos o objeto, como o Flexi faz.
+ */
 async function callOllama(prompt: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.ai.timeout);
@@ -154,29 +162,37 @@ async function callOllama(prompt: string): Promise<string> {
   try {
     const res = await fetch(config.ai.url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        authorization: `Bearer ${config.ai.token}`,
+      },
       signal: controller.signal,
       body: JSON.stringify({
         model: config.ai.model,
         system: SYSTEM_PROMPT,
         prompt,
         stream: false,
-        // format:"json" faz o Ollama restringir a saída a JSON válido.
-        format: 'json',
+        think: false,
+        keep_alive: config.ai.keepAlive,
         options: {
           temperature: Number.isFinite(config.ai.temperature) ? config.ai.temperature : 0.3,
-          num_ctx: 8192,
+          num_ctx: config.ai.numCtx,
+          num_predict: config.ai.numPredict,
         },
       }),
     });
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`Ollama respondeu HTTP ${res.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
+    // O Ollama devolve texto; parseamos manualmente para dar erro claro.
+    const raw = await res.text();
+    let data: { response?: string; error?: string };
+    try {
+      data = JSON.parse(raw) as { response?: string; error?: string };
+    } catch {
+      throw new Error(`Resposta não-JSON do Ollama (HTTP ${res.status}): ${raw.slice(0, 200)}`);
     }
 
-    const data = (await res.json()) as { response?: string; error?: string };
     if (data.error) throw new Error(data.error);
+    if (!res.ok) throw new Error(`Ollama respondeu HTTP ${res.status}`);
     return data.response ?? '';
   } finally {
     clearTimeout(timer);

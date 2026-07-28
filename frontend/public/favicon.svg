@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="FAST">
+  <defs>
+    <!-- Fundo escuro do app -->
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#141c2b"/>
+      <stop offset="0.55" stop-color="#0c1018"/>
+      <stop offset="1" stop-color="#070a0f"/>
+    </linearGradient>
+
+    <!-- Arco do velocímetro: azul → roxo → laranja -->
+    <linearGradient id="arc" x1="96" y1="264" x2="416" y2="264" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="0.42" stop-color="#8b5cf6"/>
+      <stop offset="0.72" stop-color="#f97316"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+
+    <!-- Raio: amarelo → laranja -->
+    <linearGradient id="bolt" x1="256" y1="178" x2="256" y2="466" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe24d"/>
+      <stop offset="0.5" stop-color="#ffb02e"/>
+      <stop offset="1" stop-color="#ff8a00"/>
+    </linearGradient>
+
+    <!-- Ponteiro branco -->
+    <linearGradient id="needle" x1="256" y1="292" x2="371" y2="196" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#cbd5e1"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+
+    <!-- Brilho laranja inferior direito -->
+    <radialGradient id="glow" cx="0.72" cy="0.7" r="0.5">
+      <stop offset="0" stop-color="#ff8a00" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ff8a00" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Base -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#bg)"/>
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="url(#glow)"/>
+  <rect x="8.5" y="8.5" width="495" height="495" rx="111.5" fill="none" stroke="#000000" stroke-opacity="0.6" stroke-width="1"/>
+
+  <!-- Marcas do mostrador -->
+  <g stroke="url(#arc)" stroke-width="7" stroke-linecap="round" opacity="0.9">
+    <line x1="109" y1="331" x2="127" y2="327"/>
+    <line x1="113" y1="240" x2="130" y2="246"/>
+    <line x1="169" y1="167" x2="179" y2="182"/>
+    <line x1="256" y1="140" x2="256" y2="158"/>
+    <line x1="343" y1="167" x2="333" y2="182"/>
+    <line x1="399" y1="240" x2="382" y2="246"/>
+    <line x1="403" y1="331" x2="385" y2="327"/>
+  </g>
+
+  <!-- Arco do velocímetro -->
+  <path d="M 90.6 352.2 A 176 176 0 1 1 421.4 352.2"
+        fill="none" stroke="url(#arc)" stroke-width="26" stroke-linecap="round"/>
+
+  <!-- Raio central -->
+  <path d="M 286 182 L 196 320 L 250 320 L 214 462 L 326 296 L 270 296 Z"
+        fill="url(#bolt)" stroke="#c96a00" stroke-width="3" stroke-linejoin="round" filter="url(#soft)"/>
+
+  <!-- Ponteiro apontando para o fim (laranja) -->
+  <polygon points="370.9,195.5 261.8,298.9 236.1,308.7 250.2,285.1" fill="url(#needle)"/>
+  <circle cx="256" cy="292" r="17" fill="#0e131c" stroke="#e2e8f0" stroke-width="4"/>
+  <circle cx="256" cy="292" r="5" fill="#94a3b8"/>
+</svg>
