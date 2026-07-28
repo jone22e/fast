@@ -93,11 +93,8 @@ onMounted(async () => {
           </button>
         </p>
 
-        <ul class="badges">
-          <li>Sem cadastro</li>
-          <li>Sem banco de dados</li>
-          <li>Resultado descartado ao final</li>
-          <li v-if="aiEnabled">Análise por IA ativa</li>
+        <ul v-if="aiEnabled" class="badges">
+          <li>Análise por IA ativa</li>
         </ul>
       </section>
 

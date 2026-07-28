@@ -48,10 +48,18 @@ done
   bad "Chromium não encontrado — rode: npx playwright install --with-deps chromium"
 
 # ---- Chave da IA ------------------------------------------------------------
-if [ -f .env ] && grep -qE '^ANTHROPIC_API_KEY=.+' .env; then
-  ok "ANTHROPIC_API_KEY configurada (Módulo 10 ativo)"
+if [ -f .env ] && grep -qE '^FAST_AI_URL=.+' .env; then
+  ai_url="$(grep -E '^FAST_AI_URL=' .env | head -1 | cut -d= -f2-)"
+  ok "FAST_AI_URL configurada (Módulo 10 ativo via Ollama)"
+  # Testa se o endpoint do Ollama responde (host da API, sem o caminho /api/generate).
+  ai_base="$(printf '%s' "$ai_url" | sed -E 's#(/api/.*)$##')"
+  if [ -n "$ai_base" ] && curl -fsS --max-time 6 "$ai_base/api/tags" >/dev/null 2>&1; then
+    ok "Ollama acessível em $ai_base"
+  else
+    warn "Ollama em $ai_base não respondeu — confirme que o serviço está no ar e alcançável"
+  fi
 else
-  warn "ANTHROPIC_API_KEY não definida — auditoria técnica roda, análise por IA fica desativada"
+  warn "FAST_AI_URL não definida — auditoria técnica roda, análise por IA fica desativada"
 fi
 
 # ---- Serviço ----------------------------------------------------------------

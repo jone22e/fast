@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { config } from '../config.js';
+import { aiEnabled, config } from '../config.js';
 import { runAudit } from '../core/engine.js';
 import { getPlugins } from '../core/registry.js';
 import type { AuditEvent } from '../core/types.js';
@@ -91,7 +91,7 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
       checks: p.checks,
       weight: p.weight,
     })),
-    aiEnabled: Boolean(config.ai.apiKey),
+    aiEnabled: aiEnabled(),
   }));
 
   /**

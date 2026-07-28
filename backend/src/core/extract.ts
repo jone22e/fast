@@ -266,8 +266,10 @@ export async function extractDom(page: Page, origin: string): Promise<DomSnapsho
 
     const forms = Array.from(doc.querySelectorAll('form')).map((f) => ({
       action: f.getAttribute('action'),
+      method: (f.getAttribute('method') || 'get').toLowerCase(),
       fields: f.querySelectorAll('input:not([type="hidden"]), select, textarea').length,
       hasSubmit: Boolean(f.querySelector('button, input[type="submit"]')),
+      hasPassword: Boolean(f.querySelector('input[type="password" i]')),
     }));
 
     const ctaCandidates = Array.from(

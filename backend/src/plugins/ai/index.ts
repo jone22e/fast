@@ -1,91 +1,49 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { config } from '../../config.js';
 import type { AiAnalysis, AuditContext, CategoryScore, Issue } from '../../core/types.js';
 
 /**
- * Módulo 10 — Inteligência Artificial.
+ * Módulo 10 — Inteligência Artificial (via Ollama self-hosted).
  *
  * Não é um plugin de auditoria: roda depois de todos os outros e interpreta
  * os resultados técnicos, produzindo uma avaliação em linguagem natural.
+ *
+ * Usa um modelo local através do endpoint /api/generate do Ollama. Os dados
+ * não saem da infraestrutura — nada é enviado a serviços externos.
  */
 
-let client: Anthropic | null = null;
-
-function getClient(): Anthropic | null {
-  if (!config.ai.apiKey) return null;
-  if (!client) client = new Anthropic({ apiKey: config.ai.apiKey });
-  return client;
+interface AnalysisShape {
+  executiveSummary: string;
+  mainProblems: string[];
+  impacts: string;
+  priorities: string[];
+  estimatedGains: string;
+  actionPlan: { step: number; title: string; detail: string; effort: string }[];
+  technicalNotes: string[];
 }
 
-const ANALYSIS_SCHEMA = {
-  type: 'object',
-  properties: {
-    executiveSummary: {
-      type: 'string',
-      description: 'Resumo executivo de 3 a 5 frases, em português, acessível a quem não é técnico.',
-    },
-    mainProblems: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'De 3 a 6 problemas mais relevantes, cada um em uma frase.',
-    },
-    impacts: {
-      type: 'string',
-      description: 'Parágrafo explicando o impacto concreto dos problemas em tráfego, conversão e visibilidade em IA.',
-    },
-    priorities: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Correções em ordem de prioridade, da mais urgente para a menos.',
-    },
-    estimatedGains: {
-      type: 'string',
-      description: 'Estimativa realista dos ganhos após aplicar as correções prioritárias.',
-    },
-    actionPlan: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          step: { type: 'integer' },
-          title: { type: 'string' },
-          detail: { type: 'string', description: 'Explicação técnica de como executar.' },
-          effort: { type: 'string', description: 'Esforço estimado, ex.: "30 minutos", "1 dia".' },
-        },
-        required: ['step', 'title', 'detail', 'effort'],
-        additionalProperties: false,
-      },
-      description: 'Plano de ação sequencial com 4 a 8 etapas.',
-    },
-    technicalNotes: {
-      type: 'array',
-      items: { type: 'string' },
-      description: 'Observações técnicas complementares para a equipe de desenvolvimento.',
-    },
-  },
-  required: [
-    'executiveSummary',
-    'mainProblems',
-    'impacts',
-    'priorities',
-    'estimatedGains',
-    'actionPlan',
-    'technicalNotes',
-  ],
-  additionalProperties: false,
-} as const;
+/** Descreve o formato de saída esperado — incluído no prompt. */
+const OUTPUT_SPEC = `Responda APENAS com um objeto JSON válido, sem texto antes ou depois, com exatamente estas chaves:
+{
+  "executiveSummary": "resumo executivo de 3 a 5 frases, acessível a quem não é técnico",
+  "mainProblems": ["3 a 6 problemas mais relevantes, um por item, uma frase cada"],
+  "impacts": "parágrafo explicando o impacto em tráfego, conversão e visibilidade em IA",
+  "priorities": ["correções em ordem de prioridade, da mais urgente para a menos"],
+  "estimatedGains": "estimativa realista dos ganhos após as correções prioritárias",
+  "actionPlan": [{"step": 1, "title": "título curto", "detail": "como executar", "effort": "ex.: 30 minutos"}],
+  "technicalNotes": ["observações técnicas para a equipe de desenvolvimento"]
+}`;
 
-const SYSTEM_PROMPT = `Você é um consultor sênior de performance web, SEO e GEO (Generative Engine Optimization).
+const SYSTEM_PROMPT = `Você é um consultor sênior de performance web, SEO, GEO (Generative Engine Optimization) e segurança.
 
 Recebe o resultado de uma auditoria técnica automatizada e produz uma avaliação em português do Brasil.
 
 Diretrizes:
-- Escreva para dois públicos ao mesmo tempo: o resumo executivo e os impactos devem ser compreensíveis por alguém não técnico; o plano de ação e as notas técnicas são para desenvolvedores.
+- Escreva para dois públicos: o resumo executivo e os impactos devem ser compreensíveis por alguém não técnico; o plano de ação e as notas técnicas são para desenvolvedores.
 - Baseie-se apenas nos dados fornecidos. Não invente métricas, números ou problemas que não estejam no relatório.
 - Priorize por retorno sobre esforço: correções fáceis de alto impacto vêm primeiro.
-- Seja concreto. Em vez de "otimize as imagens", escreva "converta as 4 imagens acima de 300 KB para WebP e adicione srcset".
-- Quando estimar ganhos, deixe claro que é uma estimativa e ancore nos números medidos.
-- Dê peso especial ao GEO: a visibilidade em ChatGPT, Claude, Gemini e Perplexity é um diferencial que a maioria dos sites ainda ignora.`;
+- Seja concreto: em vez de "otimize as imagens", escreva "converta as 4 imagens acima de 300 KB para WebP e adicione srcset".
+- Dê peso especial a problemas de segurança (chaves expostas, IP de origem exposto, SQL injection) e ao GEO.
+${OUTPUT_SPEC}`;
 
 interface AnalysisInput {
   ctx: AuditContext;
@@ -106,34 +64,22 @@ function buildPrompt(input: AnalysisInput): string {
     'NOTAS POR CATEGORIA:',
     ...categories.map((c) => `- ${c.label}: ${c.score}/100 (${c.issueCount} problema(s))`),
     '',
-    'MÉTRICAS DE PERFORMANCE (desktop):',
-    `- LCP: ${m.lcp ?? 'n/d'} ms`,
-    `- CLS: ${m.cls ?? 'n/d'}`,
-    `- INP: ${m.inp ?? 'n/d'} ms`,
-    `- FCP: ${m.fcp ?? 'n/d'} ms`,
-    `- TTFB: ${m.ttfb ?? 'n/d'} ms`,
-    `- Total Blocking Time: ${m.tbt ?? 'n/d'} ms`,
+    'PERFORMANCE (desktop):',
+    `- LCP: ${m.lcp ?? 'n/d'} ms | CLS: ${m.cls ?? 'n/d'} | INP: ${m.inp ?? 'n/d'} ms | TTFB: ${m.ttfb ?? 'n/d'} ms | TBT: ${m.tbt ?? 'n/d'} ms`,
     `- Requisições: ${ctx.resources.length}`,
     '',
-    'MÉTRICAS MOBILE:',
-    `- LCP: ${ctx.mobile.metrics.lcp ?? 'n/d'} ms`,
-    `- CLS: ${ctx.mobile.metrics.cls ?? 'n/d'}`,
-    `- Rolagem horizontal: ${ctx.mobile.horizontalOverflow ? 'sim' : 'não'}`,
+    'CONTEXTO:',
+    `- llms.txt: ${ctx.llmsTxt?.ok ? 'presente' : 'ausente'} | robots.txt: ${ctx.robotsTxt?.ok ? 'presente' : 'ausente'}`,
+    `- Palavras no conteúdo: ${ctx.dom.wordCount} | dados estruturados: ${ctx.dom.jsonLd.length} bloco(s)`,
+    `- HTTPS: ${ctx.finalUrl.startsWith('https://') ? 'sim' : 'não'} | CDN: ${ctx.network.cdn ?? 'não detectado'}`,
     '',
-    'CONTEXTO GEO:',
-    `- llms.txt: ${ctx.llmsTxt?.ok ? 'presente' : 'ausente'}`,
-    `- llms-full.txt: ${ctx.llmsFullTxt?.ok ? 'presente' : 'ausente'}`,
-    `- robots.txt: ${ctx.robotsTxt?.ok ? 'presente' : 'ausente'}`,
-    `- Palavras no conteúdo: ${ctx.dom.wordCount}`,
-    `- Dados estruturados (JSON-LD): ${ctx.dom.jsonLd.length} bloco(s)`,
-    '',
-    `PROBLEMAS ENCONTRADOS (${issues.length} no total, listados por prioridade):`,
+    `PROBLEMAS ENCONTRADOS (${issues.length} no total, por prioridade):`,
   ];
 
   for (const issue of issues.slice(0, 30)) {
     lines.push(
       `- [${issue.priority.toUpperCase()} · ${issue.severity} · ${issue.category}] ${issue.title}` +
-        ` — ${issue.description} (correção estimada em ${issue.estimatedMinutes} min; ganho: ${issue.expectedGain})`,
+        ` — ${issue.description} (correção ~${issue.estimatedMinutes} min; ganho: ${issue.expectedGain})`,
     );
   }
 
@@ -141,7 +87,7 @@ function buildPrompt(input: AnalysisInput): string {
     lines.push(`... e mais ${issues.length - 30} problema(s) de menor prioridade.`);
   }
 
-  lines.push('', 'Produza a análise seguindo o schema solicitado.');
+  lines.push('', OUTPUT_SPEC);
   return lines.join('\n');
 }
 
@@ -159,54 +105,125 @@ function unavailable(reason: string): AiAnalysis {
   };
 }
 
-export async function runAiAnalysis(input: AnalysisInput): Promise<AiAnalysis> {
-  const anthropic = getClient();
+/** Remove blocos de raciocínio <think>…</think> que modelos Qwen3 emitem. */
+function stripThinking(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/?think>/gi, '').trim();
+}
 
-  if (!anthropic) {
+/**
+ * Extrai o primeiro objeto JSON de um texto, mesmo que venha cercado de prosa.
+ * Faz varredura com contagem de chaves respeitando strings e escapes.
+ */
+function extractJson(text: string): string | null {
+  const start = text.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return text.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+/** Chama o Ollama /api/generate e devolve o texto gerado. */
+async function callOllama(prompt: string): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.ai.timeout);
+
+  try {
+    const res = await fetch(config.ai.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: config.ai.model,
+        system: SYSTEM_PROMPT,
+        prompt,
+        stream: false,
+        // format:"json" faz o Ollama restringir a saída a JSON válido.
+        format: 'json',
+        options: {
+          temperature: Number.isFinite(config.ai.temperature) ? config.ai.temperature : 0.3,
+          num_ctx: 8192,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Ollama respondeu HTTP ${res.status}${body ? `: ${body.slice(0, 200)}` : ''}`);
+    }
+
+    const data = (await res.json()) as { response?: string; error?: string };
+    if (data.error) throw new Error(data.error);
+    return data.response ?? '';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function runAiAnalysis(input: AnalysisInput): Promise<AiAnalysis> {
+  if (!config.ai.url) {
     return unavailable(
-      'Módulo de IA desativado: defina ANTHROPIC_API_KEY no .env para habilitar a análise em linguagem natural.',
+      'Módulo de IA desativado: defina FAST_AI_URL no .env (endpoint /api/generate do Ollama) para habilitar a análise em linguagem natural.',
     );
   }
 
   try {
-    // Streaming evita timeout de HTTP em respostas longas; finalMessage()
-    // devolve a mensagem completa sem precisar tratar cada evento.
-    const stream = anthropic.messages.stream({
-      model: config.ai.model,
-      max_tokens: 16000,
-      system: SYSTEM_PROMPT,
-      output_config: {
-        effort: config.ai.effort,
-        format: { type: 'json_schema', schema: ANALYSIS_SCHEMA },
-      },
-      messages: [{ role: 'user', content: buildPrompt(input) }],
-    } as Parameters<typeof anthropic.messages.stream>[0]);
+    const raw = await callOllama(buildPrompt(input));
+    const cleaned = stripThinking(raw);
+    const json = extractJson(cleaned) ?? cleaned;
 
-    const message = await stream.finalMessage();
-
-    if (message.stop_reason === 'refusal') {
-      return unavailable('O modelo recusou a análise para este conteúdo.');
+    let parsed: Partial<AnalysisShape>;
+    try {
+      parsed = JSON.parse(json) as Partial<AnalysisShape>;
+    } catch {
+      return unavailable('A resposta do modelo não veio em JSON válido. Verifique o modelo configurado em FAST_AI_MODEL.');
     }
-
-    const textBlock = message.content.find((b) => b.type === 'text');
-    if (!textBlock || textBlock.type !== 'text') {
-      return unavailable('Resposta da IA sem conteúdo textual.');
-    }
-
-    const parsed = JSON.parse(textBlock.text) as Omit<AiAnalysis, 'available'>;
 
     return {
       available: true,
-      executiveSummary: parsed.executiveSummary ?? '',
-      mainProblems: parsed.mainProblems ?? [],
-      impacts: parsed.impacts ?? '',
-      priorities: parsed.priorities ?? [],
-      estimatedGains: parsed.estimatedGains ?? '',
-      actionPlan: parsed.actionPlan ?? [],
-      technicalNotes: parsed.technicalNotes ?? [],
+      executiveSummary: String(parsed.executiveSummary ?? ''),
+      mainProblems: Array.isArray(parsed.mainProblems) ? parsed.mainProblems.map(String) : [],
+      impacts: String(parsed.impacts ?? ''),
+      priorities: Array.isArray(parsed.priorities) ? parsed.priorities.map(String) : [],
+      estimatedGains: String(parsed.estimatedGains ?? ''),
+      actionPlan: Array.isArray(parsed.actionPlan)
+        ? parsed.actionPlan.map((s, i) => ({
+            step: Number(s?.step ?? i + 1),
+            title: String(s?.title ?? ''),
+            detail: String(s?.detail ?? ''),
+            effort: String(s?.effort ?? ''),
+          }))
+        : [],
+      technicalNotes: Array.isArray(parsed.technicalNotes) ? parsed.technicalNotes.map(String) : [],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return unavailable(`Falha ao gerar a análise por IA: ${message}`);
+    const hint = message.includes('aborted')
+      ? `O modelo não respondeu em ${Math.round(config.ai.timeout / 1000)}s (ajuste FAST_AI_TIMEOUT).`
+      : message;
+    return unavailable(`Falha ao gerar a análise por IA: ${hint}`);
   }
 }

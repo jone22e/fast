@@ -42,13 +42,19 @@ nginx e systemd, e reinicia o serviço. Idempotente — pode rodar quantas vezes
 
 ### Habilitando a análise por IA
 
-O Módulo 10 usa a API da Anthropic. Sem chave, a auditoria técnica roda normalmente
-e apenas a interpretação em linguagem natural é omitida.
+O Módulo 10 usa um modelo local via **Ollama** (`/api/generate`). Os dados não saem da
+sua infraestrutura. Sem `FAST_AI_URL`, a auditoria técnica roda normalmente e apenas a
+interpretação em linguagem natural é omitida.
 
 ```bash
-sudo nano .env          # defina ANTHROPIC_API_KEY
+sudo nano .env
+# FAST_AI_URL=http://redis.flexi.ltd:11434/api/generate
+# FAST_AI_MODEL=qwen3.6:27b
 sudo make restart
 ```
+
+O modelo pode emitir blocos de raciocínio `<think>…</think>` (comum na família Qwen3);
+o backend remove esse conteúdo e extrai o JSON automaticamente.
 
 ---
 
@@ -171,8 +177,9 @@ Todas as opções ficam em `.env` (criado a partir de `.env.example` no `make in
 | `FAST_DOMAIN` | `fast.openflexi.com` | Domínio público |
 | `FAST_SSL_EMAIL` | — | E-mail do Let's Encrypt |
 | `PORT` / `HOST` | `3001` / `127.0.0.1` | Bind do backend |
-| `ANTHROPIC_API_KEY` | — | Habilita o Módulo 10 |
-| `FAST_AI_MODEL` | `claude-opus-5` | Modelo usado na análise |
+| `FAST_AI_URL` | — | Endpoint `/api/generate` do Ollama; habilita o Módulo 10 |
+| `FAST_AI_MODEL` | `qwen3.6:27b` | Modelo Ollama usado na análise |
+| `FAST_AI_TIMEOUT` | `120000` | Espera máxima pela resposta do modelo (ms) |
 | `FAST_AI_EFFORT` | `medium` | Profundidade do raciocínio |
 | `FAST_AUDIT_TIMEOUT` | `120000` | Tempo máximo por auditoria (ms) |
 | `FAST_MAX_CONCURRENCY` | `2` | Auditorias simultâneas |
@@ -189,10 +196,16 @@ Avalia a postura de segurança do **site auditado**, de forma **estritamente pas
 analisa apenas o que o site já devolve (cabeçalhos, cookies, HTML e a estrutura de
 links/formulários). Nenhum payload de ataque é enviado.
 
-Verifica: presença de WAF/firewall, exposição do IP de origem, vazamento de IP interno,
-divulgação de versão/tecnologia, vazamento de erros de banco (indício de suscetibilidade
-a SQL injection), stack traces expostos, superfície de parâmetros, `security.txt` e
-listagem de diretórios.
+Verifica: presença de WAF/firewall; **exposição do IP externo de origem** (cruzando os
+IPs resolvidos com as faixas conhecidas de Cloudflare e Fastly — se o IP não é de borda
+e não há proxy, é o servidor real exposto); vazamento de IP interno; divulgação de
+versão/tecnologia; **chaves e senhas expostas no HTML/JS servido** (AWS, Stripe, GitHub,
+Google, chaves privadas — sempre mascaradas na evidência); **transporte inseguro de
+senha** (campo de senha em HTTP, formulário via GET, action para HTTP); vazamento de
+erros de banco (indício de suscetibilidade a SQL injection); stack traces expostos;
+superfície de parâmetros; `security.txt`; e listagem de diretórios.
+
+Cada problema traz um passo a passo de correção, não apenas o diagnóstico.
 
 **Por que passivo, e não um scanner de injeção ativo:** a FAST é uma ferramenta pública
 sem autenticação, onde qualquer visitante aponta para qualquer URL. Disparar payloads de

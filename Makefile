@@ -72,10 +72,10 @@ install: check env deps build nginx service ssl start
 	@printf "  Acesse:   https://$(DOMAIN)\n"
 	@printf "  Serviço:  systemctl status $(SERVICE)\n"
 	@printf "  Logs:     make logs\n\n"
-	@if [ -z "$(ANTHROPIC_API_KEY)" ]; then \
-	  printf "  $(YELL)Atenção:$(NC) ANTHROPIC_API_KEY não definida em .env —\n"; \
-	  printf "  a auditoria técnica funciona, mas o Módulo 10 (análise por IA) fica desativado.\n"; \
-	  printf "  Após definir a chave, execute: sudo make restart\n\n"; \
+	@if [ -z "$(FAST_AI_URL)" ]; then \
+	  printf "  $(YELL)Atenção:$(NC) FAST_AI_URL não definida em .env —\n"; \
+	  printf "  a auditoria técnica funciona, mas o Módulo 10 (análise por IA via Ollama) fica desativado.\n"; \
+	  printf "  Após configurar o endpoint do Ollama, execute: sudo make restart\n\n"; \
 	fi
 
 # =============================================================================

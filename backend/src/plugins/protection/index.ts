@@ -73,6 +73,40 @@ const STACKTRACE_SIGNATURES = [
   /Whoops\\Exception|laravel\.log|symfony.*Exception/i,
 ];
 
+// ---- Segredos e credenciais expostos no HTML/JS servido (passivo) ----------
+// Padrões de alta confiança de chaves e tokens que nunca deveriam aparecer no
+// código entregue ao navegador. A detecção é passiva: o conteúdo já é servido.
+interface SecretPattern {
+  name: string;
+  re: RegExp;
+  severity: 'critical' | 'high' | 'medium';
+}
+
+const SECRET_PATTERNS: SecretPattern[] = [
+  { name: 'Chave privada (PEM)', re: /-----BEGIN (?:RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/, severity: 'critical' },
+  { name: 'AWS Access Key ID', re: /\bAKIA[0-9A-Z]{16}\b/, severity: 'critical' },
+  { name: 'AWS Secret Access Key', re: /\baws_secret_access_key["'\s:=]+[A-Za-z0-9/+]{40}\b/i, severity: 'critical' },
+  { name: 'Stripe Secret Key', re: /\bsk_live_[0-9A-Za-z]{24,}\b/, severity: 'critical' },
+  { name: 'GitHub Token', re: /\b(?:ghp|gho|ghs|ghu)_[0-9A-Za-z]{36}\b|\bgithub_pat_[0-9A-Za-z_]{50,}\b/, severity: 'critical' },
+  { name: 'Google API Key', re: /\bAIza[0-9A-Za-z_\-]{35}\b/, severity: 'high' },
+  { name: 'Slack Token', re: /\bxox[baprs]-[0-9A-Za-z-]{10,}\b/, severity: 'high' },
+  { name: 'Chave privada OpenAI/Anthropic', re: /\b(?:sk-ant-|sk-)[A-Za-z0-9_\-]{20,}\b/, severity: 'high' },
+  { name: 'Credenciais na URL (user:senha@)', re: /\bhttps?:\/\/[^/\s"'<>:@]+:[^/\s"'<>:@]{3,}@[^/\s"'<>]+/i, severity: 'high' },
+  { name: 'Twilio Account SID', re: /\bAC[0-9a-f]{32}\b/, severity: 'medium' },
+];
+
+// Atribuição genérica de senha/segredo em código (baixa confiança → medium).
+const GENERIC_SECRET_RE =
+  /["'`]?(?:password|passwd|senha|secret|api[_-]?key|access[_-]?token|auth[_-]?token|private[_-]?key)["'`]?\s*[:=]\s*["'`]([^"'`\s]{8,})["'`]/gi;
+const PLACEHOLDER_RE = /^(?:your|my|the|example|sample|test|demo|xxx+|changeme|placeholder|redacted|\*+|\.+|<.*>|\$\{.*\}|%.*%)/i;
+
+/** Mascara um segredo para evidência: mostra o suficiente para localizar, não para usar. */
+function maskSecret(s: string): string {
+  const clean = s.trim();
+  if (clean.length <= 8) return `${clean.slice(0, 2)}***`;
+  return `${clean.slice(0, 4)}***${clean.slice(-2)} (${clean.length} chars)`;
+}
+
 /** Extrai valores de cabeçalho que parecem endereços IPv4. */
 function extractIps(value: string): string[] {
   return value.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) ?? [];
@@ -91,23 +125,66 @@ function isPrivateIp(ip: string): boolean {
   );
 }
 
+// ---- Faixas de IP de CDNs que escondem a origem (IPv4, publicadas) ---------
+// Se o IP resolvido cai numa destas faixas, o que responde é um nó de borda —
+// a origem real está escondida. Fora delas (e sem sinal de proxy), o IP que
+// responde é o próprio servidor, exposto diretamente à internet.
+const CDN_RANGES: Record<string, string[]> = {
+  Cloudflare: [
+    '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+    '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+    '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+    '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+  ],
+  Fastly: [
+    '151.101.0.0/16', '199.232.0.0/16', '23.235.32.0/20', '43.249.72.0/22',
+    '104.156.80.0/20', '146.75.0.0/16', '167.82.0.0/17', '172.111.64.0/18',
+    '185.31.16.0/22',
+  ],
+};
+
+function ipv4ToInt(ip: string): number | null {
+  const p = ip.split('.').map(Number);
+  if (p.length !== 4 || p.some((n) => !Number.isFinite(n) || n < 0 || n > 255)) return null;
+  return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3];
+}
+
+function inCidr(ip: string, cidr: string): boolean {
+  const [range, bitsStr] = cidr.split('/');
+  const bits = Number(bitsStr);
+  const ipInt = ipv4ToInt(ip);
+  const rangeInt = ipv4ToInt(range);
+  if (ipInt === null || rangeInt === null) return false;
+  const mask = bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0;
+  return (ipInt & mask) === (rangeInt & mask);
+}
+
+/** Nome do CDN se o IP for de borda; null se for um IP comum (provável origem). */
+function classifyCdnIp(ip: string): string | null {
+  for (const [name, ranges] of Object.entries(CDN_RANGES)) {
+    if (ranges.some((cidr) => inCidr(ip, cidr))) return name;
+  }
+  return null;
+}
+
 const plugin: AuditPlugin = {
   id: 'protection',
   name: 'Proteção & Exposição',
   description:
-    'Avaliação passiva da postura de segurança: WAF/firewall, exposição do IP de origem, vazamento de tecnologia, sinais de suscetibilidade a SQL injection e política de divulgação.',
+    'Avaliação passiva da postura de segurança: WAF/firewall, exposição do IP externo de origem, vazamento de chaves e senhas no código, suscetibilidade a SQL injection, transporte de senha e política de divulgação.',
   category: 'protection',
   weight: 2.5,
   checks: [
     'WAF / firewall de aplicação',
-    'CDN/proxy na frente da origem',
-    'IP de origem não exposto',
-    'Sem vazamento de IP interno em cabeçalhos',
+    'IP externo de origem oculto (CDN/proxy)',
+    'Sem vazamento de IP interno',
     'Sem divulgação de versão/tecnologia',
+    'Sem chaves/segredos no código servido',
+    'Sem senha hardcoded',
+    'Transporte seguro de senha (HTTPS, POST)',
     'Sem vazamento de erros de banco (SQLi)',
     'Sem stack traces expostos',
     'Superfície de parâmetros na URL',
-    'Formulários sem parâmetros sensíveis em GET',
     'security.txt (política de divulgação)',
     'Listagem de diretórios desabilitada',
   ],
@@ -135,54 +212,77 @@ const plugin: AuditPlugin = {
       }
     }
 
-    // Detecção passiva CONFIRMA um WAF, mas não prova a ausência: muitos não
-    // se identificam nos cabeçalhos. Por isso "não confirmado" vale 0,5 (inconclusivo),
-    // nunca 0 — não penalizamos um site que pode ter proteção invisível.
+    // ---- Classificação dos IPs públicos: borda de CDN ou origem exposta? ----
+    const publicIpv4 = ctx.network.ipAddresses.filter(
+      (ip) => ipv4ToInt(ip) !== null && !isPrivateIp(ip),
+    );
+    const publicIpv6 = ctx.network.ipAddresses.filter((ip) => ip.includes(':'));
+    const cdnIps = publicIpv4.map((ip) => ({ ip, cdn: classifyCdnIp(ip) })).filter((x) => x.cdn);
+    // IPv4 público que NÃO é de nenhuma borda conhecida = provável servidor de origem.
+    const exposedIps = publicIpv4.filter((ip) => !classifyCdnIp(ip));
+
+    // Origem protegida se: cabeçalho de CDN, WAF identificado, OU o IP resolvido
+    // pertence a uma faixa de CDN. Detecção passiva confirma um WAF, mas não
+    // prova a ausência — por isso "WAF não confirmado" é alerta, não certeza.
     const hasWaf = detectedWafs.size > 0;
-    const hasProxy = Boolean(ctx.network.cdn) || hasWaf;
-    checks.push(check('waf', 'WAF / firewall de aplicação', hasWaf ? 1 : 0.5, 2, hasWaf ? [...detectedWafs].join(', ') : 'não confirmado (detecção passiva)'));
+    const hasProxy = Boolean(ctx.network.cdn) || hasWaf || cdnIps.length > 0;
+    const originExposed = !hasProxy && exposedIps.length > 0;
+
+    checks.push(check('waf', 'WAF / firewall de aplicação', hasWaf ? 1 : hasProxy ? 0.6 : 0.3, 2, hasWaf ? [...detectedWafs].join(', ') : 'não confirmado'));
 
     if (!hasWaf) {
       issues.push(
         issue({
           id: 'prot-no-waf',
-          title: 'WAF não confirmado',
-          description:
-            'Não foi identificado nenhum firewall de aplicação (WAF) nas respostas do site. A detecção é passiva e não vê todos os WAFs — alguns não se identificam —, então isto é um alerta, não uma certeza de ausência. O WAF é a primeira linha de defesa contra SQL injection, XSS e varreduras automatizadas: vale confirmar se existe um ativo.',
-          severity: hasProxy ? 'low' : 'medium',
-          impact: 'medio',
+          title: hasProxy ? 'WAF não confirmado' : 'Sem WAF na frente do site',
+          description: hasProxy
+            ? 'Há um CDN/proxy na frente, mas nenhuma assinatura de WAF foi identificada nas respostas. A detecção é passiva e não vê todos os WAFs; confirme se as regras de firewall de aplicação estão de fato ativas no seu provedor de borda.'
+            : `Não há CDN/proxy nem assinatura de WAF nas respostas — o site aparenta receber requisições diretamente na origem (${exposedIps.slice(0, 2).join(', ') || 'IP não classificado'}). Sem WAF, cada tentativa de SQL injection, XSS ou varredura automatizada chega direto à aplicação.`,
+          severity: hasProxy ? 'low' : 'high',
+          impact: 'alto',
           difficulty: 'media',
           minutes: 60,
-          fix:
-            'Confirme se há um WAF ativo. Se não houver, Cloudflare e AWS WAF oferecem regras gerenciadas contra o OWASP Top 10, ativadas no DNS/CDN sem alterar a aplicação.',
-          gain: 'Bloqueio automático da maioria dos ataques conhecidos antes de chegarem ao servidor.',
+          fix: hasProxy
+            ? 'No painel do seu CDN (Cloudflare, AWS, etc.), ative o conjunto de regras gerenciadas de WAF (OWASP Core Rule Set) em modo bloqueante e confirme que ele cobre este hostname.'
+            : 'Passo a passo: (1) coloque o site atrás de um proxy com WAF — Cloudflare (plano gratuito já inclui regras básicas) ou AWS WAF + CloudFront; (2) ative o OWASP Core Rule Set em modo bloqueante; (3) teste o site normalmente por alguns dias em modo de contagem antes de bloquear, para não barrar tráfego legítimo.',
+          gain: 'Bloqueio automático da maioria dos ataques conhecidos (OWASP Top 10) antes de chegarem ao servidor.',
         }),
       );
     }
 
     // =====================================================================
-    // 2. Exposição do IP de origem
+    // 2. Exposição do IP externo de origem
     // =====================================================================
-    // O IP que resolve para o host pode ser a origem OU um nó de borda —
-    // passivamente não dá para distinguir. Então reportamos os IPs como fato
-    // e, se não houver proxy detectado, levantamos um alerta CONDICIONAL.
-    checks.push(check('origin-protected', 'CDN/proxy protegendo a origem', hasProxy ? 1 : 0.5, 1.5, ctx.network.cdn ?? (hasWaf ? [...detectedWafs].join(', ') : 'proxy não detectado')));
+    // Rigor: cruzamos os IPs públicos com as faixas conhecidas de CDN. Se o IP
+    // NÃO é de nenhuma borda conhecida e não há proxy, ele é o servidor real,
+    // alcançável diretamente da internet — isso é confirmado, não suposição.
+    const originValue = ctx.network.cdn
+      ? ctx.network.cdn
+      : cdnIps.length > 0
+        ? `borda ${cdnIps[0].cdn}`
+        : originExposed
+          ? `IP exposto: ${exposedIps[0]}`
+          : 'sem IPv4 público';
+    checks.push(check('origin-protected', 'IP de origem oculto atrás de CDN/proxy', hasProxy ? 1 : originExposed ? 0 : 0.5, 2, originValue));
 
-    if (!hasProxy && ctx.network.ipAddresses.length > 0) {
+    if (originExposed) {
       issues.push(
         issue({
           id: 'prot-origin-exposed',
-          title: 'Nenhum CDN/proxy detectado na frente do site',
+          title: `IP externo de origem exposto (${exposedIps.join(', ')})`,
           description:
-            `Não foi detectado CDN nem WAF na frente do site. Os endereços que respondem publicamente por este host são ${ctx.network.ipAddresses.slice(0, 3).join(', ')}. Se algum deles for o servidor de origem (e não um nó de borda), ele recebe tráfego da internet diretamente, ficando exposto a DDoS, varredura de portas e ataques que contornariam qualquer proteção de borda.`,
-          severity: 'medium',
-          impact: 'medio',
+            `Os endereços ${exposedIps.join(', ')} respondem por este host e não pertencem a nenhuma rede de CDN conhecida — ou seja, é o próprio servidor de origem, alcançável diretamente da internet. Sem uma borda (Cloudflare, CloudFront, Fastly) na frente, um atacante mira o IP diretamente: negação de serviço volumétrica (DDoS), varredura de portas, e ataques que contornam qualquer proteção que dependesse do DNS. Route53 sozinho não resolve — ele é só DNS e continua publicando o IP real; é preciso um proxy que receba o tráfego no lugar da origem.`,
+          severity: 'high',
+          impact: 'alto',
           difficulty: 'media',
-          minutes: 45,
+          minutes: 60,
           fix:
-            'Se o IP acima for o da origem, coloque um CDN/proxy reverso na frente (Cloudflare, CloudFront, Fastly) e restrinja o firewall do servidor para aceitar HTTP/HTTPS apenas dos ranges do CDN — assim o IP de origem deixa de ser alcançável diretamente.',
-          gain: 'A origem deixa de ser um alvo direto; ataques volumétricos são absorvidos na borda.',
-          evidence: ctx.network.ipAddresses.slice(0, 5),
+            'Passo a passo: (1) coloque um proxy reverso que esconda a origem — Cloudflare (proxy laranja ativado) ou CloudFront/Fastly na frente do servidor; (2) troque o registro DNS para apontar ao proxy, não mais ao IP do servidor; (3) reconfigure o firewall da máquina (ufw/iptables/Security Group) para aceitar as portas 80 e 443 SOMENTE das faixas de IP do CDN e recusar o resto — assim, mesmo quem descobrir o IP antigo não alcança a origem; (4) se possível, troque o IP público do servidor após a migração, para invalidar registros históricos que já vazaram o endereço.',
+          gain: 'O IP de origem deixa de ser alcançável diretamente; ataques volumétricos são absorvidos na borda e não derrubam o servidor.',
+          evidence: [
+            ...exposedIps.map((ip) => `IPv4 de origem exposto: ${ip}`),
+            ...publicIpv6.map((ip) => `IPv6 público: ${ip}`),
+          ],
         }),
       );
     }
@@ -316,15 +416,154 @@ const plugin: AuditPlugin = {
     }
 
     // =====================================================================
-    // 5. security.txt e listagem de diretórios
+    // 5. Vazamento de credenciais e senhas (passivo)
+    // =====================================================================
+    // Varre o HTML e os scripts inline entregues ao navegador em busca de
+    // chaves, tokens e senhas. Os valores são MASCARADOS na evidência — nunca
+    // exibimos o segredo completo.
+    const scanText = `${ctx.renderedHtml || ''}\n${ctx.html || ''}`.slice(0, 3_000_000);
+    const secretsFound: { name: string; severity: 'critical' | 'high' | 'medium'; sample: string }[] = [];
+
+    for (const pat of SECRET_PATTERNS) {
+      const m = scanText.match(pat.re);
+      if (m) secretsFound.push({ name: pat.name, severity: pat.severity, sample: maskSecret(m[0]) });
+    }
+
+    // Atribuições genéricas de senha/segredo, ignorando placeholders óbvios.
+    const genericHits = new Set<string>();
+    for (const m of scanText.matchAll(GENERIC_SECRET_RE)) {
+      const value = m[1];
+      if (PLACEHOLDER_RE.test(value)) continue;
+      genericHits.add(maskSecret(value));
+      if (genericHits.size >= 5) break;
+    }
+
+    const criticalSecrets = secretsFound.filter((s) => s.severity === 'critical');
+    const anySecret = secretsFound.length > 0 || genericHits.size > 0;
+
+    checks.push(check('no-exposed-secrets', 'Sem chaves/segredos no código servido', anySecret ? 0 : 1, 3, anySecret ? `${secretsFound.length + genericHits.size} ocorrência(s)` : 'ok'));
+
+    if (secretsFound.length > 0) {
+      issues.push(
+        issue({
+          id: 'prot-exposed-secret',
+          title: `Segredo exposto no código: ${secretsFound.map((s) => s.name).join(', ')}`,
+          description:
+            'Uma ou mais chaves/tokens aparecem no HTML ou nos scripts entregues ao navegador. Qualquer visitante — e qualquer robô — consegue lê-los abrindo o código-fonte da página. Uma chave vazada permite acesso indevido aos serviços que ela autentica (nuvem, gateway de pagamento, repositório), muitas vezes com custo financeiro direto.',
+          severity: criticalSecrets.length > 0 ? 'critical' : 'high',
+          impact: 'alto',
+          difficulty: 'media',
+          minutes: 90,
+          fix:
+            'Passo a passo: (1) REVOGUE a chave imediatamente no provedor — considere-a comprometida, pois já foi servida publicamente; (2) gere uma nova e mantenha-a apenas no servidor (variável de ambiente), nunca no código do frontend; (3) mova a chamada que usa a chave para o backend, expondo ao navegador só um endpoint próprio; (4) se for uma chave que precisa mesmo ir ao cliente (ex.: Google Maps), restrinja-a por domínio/HTTP referer e por API no painel do provedor.',
+          gain: 'Fecha o acesso indevido aos serviços autenticados pela chave e elimina o risco de custo por uso malicioso.',
+          evidence: secretsFound.map((s) => `${s.name}: ${s.sample}`),
+        }),
+      );
+    }
+
+    if (genericHits.size > 0) {
+      issues.push(
+        issue({
+          id: 'prot-hardcoded-password',
+          title: `Possível senha/segredo hardcoded no código (${genericHits.size})`,
+          description:
+            'Foram encontradas atribuições que parecem senha ou segredo embutidas no HTML/JS servido. Pode haver falso positivo (valores de exemplo), mas cada ocorrência merece revisão manual — credenciais no código do frontend ficam visíveis a qualquer visitante.',
+          severity: 'medium',
+          impact: 'alto',
+          difficulty: 'media',
+          minutes: 40,
+          fix:
+            'Revise cada ocorrência. Se for uma credencial real, revogue-a e mova-a para o servidor. Nunca versione senhas em código; use variáveis de ambiente e um cofre de segredos.',
+          gain: 'Elimina credenciais legíveis no código entregue ao navegador.',
+          evidence: [...genericHits].map((s) => `valor mascarado: ${s}`),
+        }),
+      );
+    }
+
+    // Transporte de senha: campo de senha exige HTTPS e nunca método GET.
+    const isHttps = ctx.finalUrl.startsWith('https://');
+    const passwordForms = ctx.dom.forms.filter((f) => f.hasPassword);
+    const passwordOverHttp = passwordForms.length > 0 && !isHttps;
+    const passwordViaGet = passwordForms.filter((f) => f.method === 'get');
+    const actionToHttp = passwordForms.filter((f) => f.action?.startsWith('http://'));
+
+    const transportOk = !passwordOverHttp && passwordViaGet.length === 0 && actionToHttp.length === 0;
+    checks.push(check('password-transport', 'Transporte seguro de senha', passwordForms.length === 0 ? 1 : transportOk ? 1 : 0, 2, passwordForms.length === 0 ? 'sem campo de senha' : transportOk ? 'seguro' : 'inseguro'));
+
+    if (passwordOverHttp) {
+      issues.push(
+        issue({
+          id: 'prot-password-http',
+          title: 'Campo de senha em página sem HTTPS',
+          description:
+            'A página tem um campo de senha mas não é servida por HTTPS. A senha digitada trafega em texto claro e pode ser lida por qualquer intermediário na rede (Wi-Fi público, provedor, proxy). É um vazamento direto de credenciais.',
+          severity: 'critical',
+          impact: 'alto',
+          difficulty: 'facil',
+          minutes: 30,
+          fix: 'Sirva a página por HTTPS e redirecione todo HTTP para HTTPS. Um certificado gratuito (Let\'s Encrypt) resolve. Nunca colete senha em página HTTP.',
+          gain: 'Credenciais deixam de trafegar em texto claro.',
+        }),
+      );
+    }
+
+    if (passwordViaGet.length > 0) {
+      issues.push(
+        issue({
+          id: 'prot-password-get',
+          title: 'Formulário de senha enviando via GET',
+          description:
+            'Um formulário com campo de senha usa method="get". A senha vai parar na URL — registrada no histórico do navegador, nos logs do servidor e do proxy, e no cabeçalho Referer enviado a terceiros. É um vazamento de credenciais.',
+          severity: 'high',
+          impact: 'alto',
+          difficulty: 'facil',
+          minutes: 15,
+          fix: 'Troque o método do formulário para POST. Senhas e dados sensíveis nunca devem ir na query string.',
+          gain: 'A senha para de vazar em URLs, logs e cabeçalhos Referer.',
+        }),
+      );
+    }
+
+    if (actionToHttp.length > 0 && isHttps) {
+      issues.push(
+        issue({
+          id: 'prot-password-action-http',
+          title: 'Formulário de senha envia para destino HTTP',
+          description:
+            'A página é HTTPS, mas o formulário de login envia os dados para uma URL http:// — a proteção é anulada no envio, e a senha trafega em texto claro até o destino.',
+          severity: 'critical',
+          impact: 'alto',
+          difficulty: 'facil',
+          minutes: 15,
+          fix: 'Aponte o action do formulário para uma URL https://. Verifique também redirecionamentos no destino que possam rebaixar para HTTP.',
+          gain: 'Credenciais protegidas em todo o trajeto até o servidor.',
+        }),
+      );
+    }
+
+    // =====================================================================
+    // 6. security.txt e listagem de diretórios
     // =====================================================================
     const sec = ctx.securityTxt;
     const secOk = Boolean(sec?.ok && /contact\s*:/i.test(sec.text));
-    checks.push(check('security-txt', 'security.txt (política de divulgação)', secOk ? 1 : 0.3, 1, secOk ? 'presente' : 'ausente'));
+    checks.push(check('security-txt', 'security.txt (política de divulgação)', secOk ? 1 : 0, 1, secOk ? 'presente' : 'ausente'));
 
     if (!secOk) {
-      recommendations.push(
-        'Publique /.well-known/security.txt (RFC 9116) com um contato de segurança. Facilita a comunicação responsável de vulnerabilidades antes que virem incidente público.',
+      issues.push(
+        issue({
+          id: 'prot-no-security-txt',
+          title: 'Sem security.txt (canal de divulgação de vulnerabilidades)',
+          description:
+            'Não há /.well-known/security.txt. Sem um canal claro, quem descobre uma falha no seu site não sabe como avisar — e uma vulnerabilidade que poderia ser corrigida discretamente acaba virando incidente público ou é vendida.',
+          severity: 'low',
+          impact: 'baixo',
+          difficulty: 'facil',
+          minutes: 15,
+          fix:
+            'Crie /.well-known/security.txt (RFC 9116) com pelo menos: uma linha "Contact: mailto:security@seudominio.com" e uma "Expires:" com data futura. Opcionalmente adicione "Policy:" apontando para sua política de divulgação.',
+          gain: 'Pesquisadores passam a ter um caminho para reportar falhas de forma responsável.',
+        }),
       );
     }
 
@@ -357,9 +596,16 @@ const plugin: AuditPlugin = {
         methodology: 'Detecção passiva — nenhum payload de ataque é enviado ao site auditado.',
         wafDetected: [...detectedWafs],
         originProtected: hasProxy,
-        originIps: ctx.network.ipAddresses,
+        originExposed,
+        exposedOriginIps: exposedIps,
+        cdnEdgeIps: cdnIps,
+        publicIpv6,
         internalIpLeaks: [...new Set(leakedIps)],
         techDisclosure: disclosures,
+        exposedSecrets: secretsFound.map((s) => `${s.name}: ${s.sample}`),
+        hardcodedSecrets: [...genericHits],
+        passwordForms: passwordForms.length,
+        passwordTransportSecure: passwordForms.length === 0 || transportOk,
         sqlErrorLeaks: sqlLeaks,
         stackTraceExposed: stackTraces.length > 0,
         parameterizedUrls: paramLinks.map((l) => l.absolute),

@@ -305,7 +305,13 @@ export interface DomSnapshot {
   landmarks: Record<string, number>;
   /** UX. */
   buttons: number;
-  forms: { action: string | null; fields: number; hasSubmit: boolean }[];
+  forms: {
+    action: string | null;
+    method: string;
+    fields: number;
+    hasSubmit: boolean;
+    hasPassword: boolean;
+  }[];
   navElements: number;
   ctaCandidates: string[];
   fontFamilies: string[];

@@ -5,7 +5,7 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
-import { config, isProduction } from './config.js';
+import { aiEnabled, config, isProduction } from './config.js';
 import { closeBrowser } from './core/browser.js';
 import { registerAllPlugins } from './plugins/index.js';
 import { auditRoutes } from './routes/audit.js';
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   app.get('/api/health', async () => ({
     status: 'ok',
     version: '1.0.0',
-    aiEnabled: Boolean(config.ai.apiKey),
+    aiEnabled: aiEnabled(),
     uptime: Math.round(process.uptime()),
   }));
 

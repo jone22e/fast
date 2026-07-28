@@ -22,16 +22,16 @@ export const config = {
   maxConcurrency: int('FAST_MAX_CONCURRENCY', 2),
   rateLimit: int('FAST_RATE_LIMIT', 10),
 
+  // Módulo 10 — análise por IA via Ollama (self-hosted).
+  // Habilitado quando FAST_AI_URL está definido; sem URL, o módulo é desativado.
   ai: {
-    apiKey: process.env.ANTHROPIC_API_KEY?.trim() || null,
-    model: process.env.FAST_AI_MODEL?.trim() || 'claude-opus-5',
-    effort: (process.env.FAST_AI_EFFORT?.trim() || 'medium') as
-      | 'low'
-      | 'medium'
-      | 'high'
-      | 'xhigh'
-      | 'max',
+    url: process.env.FAST_AI_URL?.trim() || '',
+    model: process.env.FAST_AI_MODEL?.trim() || 'qwen3.6:27b',
+    timeout: int('FAST_AI_TIMEOUT', 120_000),
+    temperature: Number.parseFloat(process.env.FAST_AI_TEMPERATURE ?? '0.3'),
   },
 } as const;
+
+export const aiEnabled = (): boolean => Boolean(config.ai.url);
 
 export const isProduction = config.env === 'production';
