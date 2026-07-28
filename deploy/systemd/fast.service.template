@@ -1,0 +1,47 @@
+[Unit]
+Description=FAST — Plataforma de auditoria web (performance, SEO, GEO e IA)
+Documentation=https://github.com/openflexi/fast
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fast
+Group=fast
+WorkingDirectory={{APP_DIR}}
+
+EnvironmentFile={{APP_DIR}}/.env
+Environment=NODE_ENV=production
+Environment=PLAYWRIGHT_BROWSERS_PATH={{BROWSERS_PATH}}
+
+ExecStart=/usr/bin/node {{APP_DIR}}/backend/dist/server.js
+
+Restart=always
+RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+
+# O Chromium headless é o consumidor real de memória.
+MemoryMax=3G
+TasksMax=4096
+LimitNOFILE=65535
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fast
+
+# ---- Endurecimento ----
+# O Chromium precisa de namespaces próprios; por isso NoNewPrivileges e
+# PrivateUsers ficam desligados — o sandbox do navegador depende deles.
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths={{APP_DIR}} /tmp /var/lib/fast
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RemoveIPC=true
+
+[Install]
+WantedBy=multi-user.target
