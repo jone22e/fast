@@ -16,7 +16,12 @@ log() { printf "   %s\n" "$1"; }
 
 [ -f "$TEMPLATE" ] || { echo "Template não encontrado: $TEMPLATE"; exit 1; }
 
-mkdir -p /var/www/certbot /etc/nginx/sites-available /etc/nginx/sites-enabled
+mkdir -p /var/www/certbot /etc/nginx/sites-available /etc/nginx/sites-enabled /etc/nginx/snippets
+
+# Snippet de cabeçalhos de segurança, incluído pelo server e por cada location
+# que tenha add_header próprio (o add_header local cancela a herança).
+install -m 0644 "${APP_DIR}/deploy/nginx/security-headers.conf" \
+  /etc/nginx/snippets/fast-security-headers.conf
 
 # Antes do certificado existir, servimos apenas HTTP (o certbot precisa da
 # porta 80 para o desafio). Depois da emissão, habilitamos o bloco TLS.
