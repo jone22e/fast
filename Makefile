@@ -123,7 +123,11 @@ deps:
 	$(call step,"Instalando dependências de sistema")
 	@bash deploy/scripts/system-deps.sh "$(NODE_MAJOR)"
 	$(call step,"Instalando dependências do projeto")
-	@npm ci --no-audit --fund=false 2>/dev/null || npm install --no-audit --fund=false
+	@# NODE_ENV=production vem do .env e faria o npm pular as devDependencies
+	@# (typescript, @types/node, vite, vue-tsc) — que são justamente o que o
+	@# build precisa. Forçamos a instalação completa aqui.
+	@NODE_ENV=development npm ci --include=dev --no-audit --fund=false 2>/dev/null \
+	  || NODE_ENV=development npm install --include=dev --no-audit --fund=false
 	$(call step,"Instalando Chromium para o Playwright")
 	@npx --yes playwright install --with-deps chromium
 	$(call ok,"Dependências prontas")
@@ -178,7 +182,7 @@ logs:
 # =============================================================================
 dev:
 	@if [ ! -f .env ]; then cp .env.example .env; fi
-	@if [ ! -d node_modules ]; then npm install; fi
+	@if [ ! -d node_modules ]; then NODE_ENV=development npm install --include=dev; fi
 	@npx --yes playwright install chromium
 	@printf "$(GREEN)Backend$(NC) http://127.0.0.1:$(or $(PORT),3001)  ·  $(GREEN)Frontend$(NC) http://localhost:5173\n\n"
 	@npm run dev
