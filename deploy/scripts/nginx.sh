@@ -49,6 +49,14 @@ else
   log "nginx ${NGINX_VER:-antigo} — HTTP/2 declarado no listen."
 fi
 
+# Atrás de um CDN (CloudFront), a origem recebe HTTP e NÃO deve redirecionar —
+# senão entra em loop (ERR_TOO_MANY_REDIRECTS). O CDN termina o TLS com o
+# visitante. Ative com FAST_BEHIND_CDN=1 no .env.
+case "${FAST_BEHIND_CDN:-}" in
+  1|true|yes|on) BEHIND_CDN=1 ;;
+  *)             BEHIND_CDN=0 ;;
+esac
+
 sed -e "s|{{DOMAIN}}|${DOMAIN}|g" \
     -e "s|{{PORT}}|${PORT}|g" \
     -e "s|{{APP_DIR}}|${APP_DIR}|g" \
@@ -57,14 +65,21 @@ sed -e "s|{{DOMAIN}}|${DOMAIN}|g" \
     "$TEMPLATE" > "$AVAILABLE"
 
 if [ "$SSL_MODE" = "off" ]; then
-  # Remove tudo entre os marcadores do bloco TLS até o certificado existir.
+  # Sem certificado: remove o bloco TLS e serve por HTTP, sem redirecionar.
   sed -i '/# >>> SSL-BEGIN/,/# <<< SSL-END/d' "$AVAILABLE"
-  # Sem TLS, o bloco :80 serve a aplicação diretamente em vez de redirecionar.
-  sed -i 's|# {{HTTP_ONLY}} ||g' "$AVAILABLE"
   sed -i '/{{HTTPS_REDIRECT}}/d' "$AVAILABLE"
+  sed -i 's|{{FWD_PROTO}}|$scheme|g' "$AVAILABLE"
+  log "Modo HTTP (sem certificado ainda)."
+elif [ "$BEHIND_CDN" = "1" ]; then
+  # Com TLS, atrás do CloudFront: NÃO redireciona; o :80 serve o app ao CDN.
+  sed -i '/{{HTTPS_REDIRECT}}/d' "$AVAILABLE"
+  sed -i 's|{{FWD_PROTO}}|https|g' "$AVAILABLE"
+  log "Modo atrás de CDN (FAST_BEHIND_CDN): origem serve por HTTP, sem redirect."
 else
-  sed -i '/# {{HTTP_ONLY}}/d' "$AVAILABLE"
+  # Deploy padrão: redireciona HTTP → HTTPS na própria origem.
   sed -i 's|{{HTTPS_REDIRECT}}|return 301 https://$host$request_uri;|' "$AVAILABLE"
+  sed -i 's|{{FWD_PROTO}}|$scheme|g' "$AVAILABLE"
+  log "Modo padrão: redirect HTTP → HTTPS na origem."
 fi
 
 ln -sfn "$AVAILABLE" "$ENABLED"

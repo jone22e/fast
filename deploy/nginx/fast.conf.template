@@ -28,16 +28,25 @@ server {
 
     {{HTTPS_REDIRECT}}
 
-    # {{HTTP_ONLY}} location / {
-    # {{HTTP_ONLY}}     proxy_pass http://fast_backend;
-    # {{HTTP_ONLY}}     proxy_http_version 1.1;
-    # {{HTTP_ONLY}}     proxy_set_header Host $host;
-    # {{HTTP_ONLY}}     proxy_set_header X-Real-IP $remote_addr;
-    # {{HTTP_ONLY}}     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    # {{HTTP_ONLY}}     proxy_set_header X-Forwarded-Proto $scheme;
-    # {{HTTP_ONLY}}     proxy_buffering off;
-    # {{HTTP_ONLY}}     proxy_read_timeout 300s;
-    # {{HTTP_ONLY}} }
+    # Serve a aplicação por HTTP.
+    #  - Deploy padrão: o redirect acima já mandou tudo para HTTPS; este bloco
+    #    fica inativo.
+    #  - Atrás de um CDN (CloudFront): NÃO há redirect, o CDN termina o TLS com
+    #    o visitante e busca a origem por HTTP — este bloco entrega o conteúdo.
+    #    Isso evita o loop de redirecionamento (ERR_TOO_MANY_REDIRECTS).
+    location / {
+        proxy_pass http://fast_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto {{FWD_PROTO}};
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        client_max_body_size 12m;
+    }
 }
 
 # >>> SSL-BEGIN
@@ -130,6 +139,8 @@ server {
 
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;
+        # O POST de geração de PDF envia o relatório inteiro (pode passar de 1 MB).
+        client_max_body_size 12m;
     }
 
     # ---- Assets versionados pelo Vite ----
