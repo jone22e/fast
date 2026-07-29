@@ -264,13 +264,107 @@ export async function extractDom(page: Page, origin: string): Promise<DomSnapsho
     // ---- UX ---------------------------------------------------------------
     const buttons = doc.querySelectorAll('button, [role="button"], input[type="submit"]').length;
 
-    const forms = Array.from(doc.querySelectorAll('form')).map((f) => ({
-      action: f.getAttribute('action'),
-      method: (f.getAttribute('method') || 'get').toLowerCase(),
-      fields: f.querySelectorAll('input:not([type="hidden"]), select, textarea').length,
-      hasSubmit: Boolean(f.querySelector('button, input[type="submit"]')),
-      hasPassword: Boolean(f.querySelector('input[type="password" i]')),
-    }));
+    // ---- Formulários ------------------------------------------------------
+    // Campos que caracterizam coleta de dado pessoal — a LGPD se aplica a
+    // partir daí. A detecção olha name, id, type, placeholder e autocomplete,
+    // porque cada site nomeia do seu jeito.
+    const PERSONAL_FIELD = [
+      { key: 'email', re: /e-?mail/i },
+      { key: 'telefone', re: /phone|telefone|celular|whats/i },
+      { key: 'cpf', re: /\bcpf\b/i },
+      { key: 'cnpj', re: /\bcnpj\b/i },
+      { key: 'rg', re: /\brg\b|identidade/i },
+      { key: 'nome', re: /(^|[^a-z])(nome|name|sobrenome|fullname)([^a-z]|$)/i },
+      { key: 'endereco', re: /endere[çc]o|address|logradouro|\bcep\b|street|zip/i },
+      { key: 'nascimento', re: /nascimento|birth|bday|idade/i },
+    ];
+
+    const forms = Array.from(doc.querySelectorAll('form')).map((f) => {
+      const controls = Array.from(f.querySelectorAll('input, select, textarea'));
+
+      const personalFields = [
+        ...new Set(
+          controls.flatMap((el) => {
+            const haystack = [
+              el.getAttribute('name'),
+              el.getAttribute('id'),
+              el.getAttribute('type'),
+              el.getAttribute('placeholder'),
+              el.getAttribute('autocomplete'),
+              el.getAttribute('aria-label'),
+            ]
+              .filter(Boolean)
+              .join(' ');
+            return PERSONAL_FIELD.filter((p) => p.re.test(haystack)).map((p) => p.key);
+          }),
+        ),
+      ];
+
+      return {
+        action: f.getAttribute('action'),
+        method: (f.getAttribute('method') || 'get').toLowerCase(),
+        fields: f.querySelectorAll('input:not([type="hidden"]), select, textarea').length,
+        hasSubmit: Boolean(f.querySelector('button, input[type="submit"]')),
+        hasPassword: Boolean(f.querySelector('input[type="password" i]')),
+        personalFields,
+        /** Caixa de marcação — o formato usual do consentimento explícito. */
+        hasConsentCheckbox: Boolean(f.querySelector('input[type="checkbox" i]')),
+        /** Aviso de privacidade ao lado do formulário. */
+        hasPrivacyLink: /privacidade|privacy|termos|terms|dados pessoais/i.test(
+          `${f.textContent ?? ''} ${Array.from(f.querySelectorAll('a'))
+            .map((a) => a.getAttribute('href') ?? '')
+            .join(' ')}`,
+        ),
+      };
+    });
+
+    // ---- Consentimento de cookies -----------------------------------------
+    // Duas evidências independentes: a assinatura de uma plataforma de
+    // consentimento conhecida (mais confiável) e um banner genérico
+    // reconhecido pelo texto — muitos sites brasileiros usam solução própria.
+    const CMP_SELECTORS: { name: string; selector: string }[] = [
+      { name: 'OneTrust', selector: '#onetrust-banner-sdk, #onetrust-consent-sdk' },
+      { name: 'Cookiebot', selector: '#CybotCookiebotDialog' },
+      { name: 'CookieYes', selector: '.cky-consent-container, #cookieyes' },
+      { name: 'Iubenda', selector: '#iubenda-cs-banner' },
+      { name: 'Osano', selector: '.osano-cm-window' },
+      { name: 'Termly', selector: '#termly-code-snippet-support' },
+      { name: 'Complianz', selector: '#cmplz-cookiebanner-container' },
+      { name: 'Klaro', selector: '.klaro .cookie-notice' },
+      { name: 'Quantcast', selector: '.qc-cmp2-container' },
+      { name: 'Didomi', selector: '#didomi-host' },
+      { name: 'LGPD Cookie Consent', selector: '#lgpd-cookie-consent, .lgpd-cookie' },
+    ];
+
+    const cmp = CMP_SELECTORS.find((c) => doc.querySelector(c.selector))?.name ?? null;
+
+    const bannerCandidates = Array.from(
+      doc.querySelectorAll(
+        '[id*="cookie" i], [class*="cookie" i], [id*="consent" i], [class*="consent" i], [id*="lgpd" i], [class*="lgpd" i], [role="dialog"], [aria-label*="cookie" i]',
+      ),
+    );
+
+    // Muitas plataformas de consentimento montam o banner dentro de um shadow
+    // root, onde o querySelector do documento não alcança. Sem olhar ali, um
+    // site com banner apareceria como se não tivesse nenhum.
+    const shadowText: string[] = [];
+    for (const el of Array.from(doc.querySelectorAll('*'))) {
+      const root = (el as Element & { shadowRoot?: ShadowRoot | null }).shadowRoot;
+      if (root) shadowText.push((root.textContent ?? '').slice(0, 400));
+      if (shadowText.length > 40) break;
+    }
+
+    const looksLikeConsent = (text: string): boolean =>
+      /cookie|lgpd|privacidad|privacy/i.test(text) &&
+      /aceit|concord|permitir|allow|accept|entendi|ok\b|rejeit|recusar|configurar|prefer/i.test(text);
+
+    const consentBanner =
+      cmp !== null ||
+      shadowText.some(looksLikeConsent) ||
+      bannerCandidates.some((el) => {
+        // Exige as duas partes: falar de cookies E oferecer uma ação.
+        return looksLikeConsent((el.textContent ?? '').slice(0, 400));
+      });
 
     const ctaCandidates = Array.from(
       doc.querySelectorAll('a.btn, a.button, button, [class*="cta" i], a[class*="btn" i]'),
@@ -355,6 +449,8 @@ export async function extractDom(page: Page, origin: string): Promise<DomSnapsho
       landmarks,
       buttons,
       forms,
+      consentBanner,
+      cmp,
       navElements: doc.querySelectorAll('nav').length,
       ctaCandidates,
       fontFamilies,

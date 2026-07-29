@@ -4,6 +4,7 @@ import { accessibility } from './accessibility.js';
 import { content } from './content.js';
 import { geo } from './geo.js';
 import { infrastructure } from './infrastructure.js';
+import { lgpd } from './lgpd.js';
 import { mobile } from './mobile.js';
 import { performance } from './performance.js';
 import { protection } from './protection.js';
@@ -17,6 +18,7 @@ export const es: LangCatalog = fromPlugins({
   content,
   geo,
   infrastructure,
+  lgpd,
   mobile,
   performance,
   protection,

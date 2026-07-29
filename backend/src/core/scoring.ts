@@ -81,6 +81,7 @@ export const CATEGORY_LABELS: Record<CategoryId, string> = {
   protection: 'Proteção & Exposição',
   accessibility: 'Acessibilidade',
   infrastructure: 'Infraestrutura',
+  lgpd: 'LGPD',
   mobile: 'Mobile',
   ux: 'UX',
 };

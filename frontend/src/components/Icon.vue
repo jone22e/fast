@@ -18,6 +18,8 @@ const ICONS: Record<string, string> = {
   infrastructure: 'M4 5h16v5H4V5ZM4 14h16v5H4v-5ZM7.5 7.5v.01M7.5 16.5v.01',
   mobile: 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM11 18h2',
   ux: 'M4 5h16v11H4V5ZM4 9h16M9 20h6M12 16v4',
+  // LGPD: escudo com documento — proteção aplicada a dado pessoal.
+  lgpd: 'M12 3l6.5 2.6v5c0 4-2.6 7.5-6.5 8.8-3.9-1.3-6.5-4.8-6.5-8.8v-5L12 3ZM9.5 9.5h5M9.5 12.5h5M9.5 15.5h3',
 
   // ---- interface ----
   bolt: 'M13 3 5 14h6l-1 7 8-11h-6l1-7Z',

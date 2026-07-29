@@ -3,6 +3,7 @@ import accessibility from './accessibility/index.js';
 import content from './content/index.js';
 import geo from './geo/index.js';
 import infrastructure from './infrastructure/index.js';
+import lgpd from './lgpd/index.js';
 import mobile from './mobile/index.js';
 import performance from './performance/index.js';
 import protection from './protection/index.js';
@@ -24,6 +25,7 @@ export function registerAllPlugins(): void {
   registerPlugin(security);
   registerPlugin(protection);
   registerPlugin(infrastructure);
+  registerPlugin(lgpd);
   registerPlugin(mobile);
   registerPlugin(ux);
 }

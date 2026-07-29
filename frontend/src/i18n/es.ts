@@ -5,7 +5,7 @@ export const es: Messages = {
   htmlLang: 'es',
 
   meta: {
-    title: 'FAST — Auditoría completa de sitios: rendimiento, SEO, GEO e IA',
+    title: 'FAST — Auditoría completa de sitios: rendimiento, SEO, GEO, LGPD e IA',
     description: 'Audite cualquier sitio en segundos: rendimiento, SEO, GEO para IA, accesibilidad y seguridad, con un plan de acción priorizado. Sin registro.',
   },
 
@@ -34,8 +34,8 @@ export const es: Messages = {
     tryLabel: 'Pruebe con:',
     scrollCue: 'Ver qué analiza FAST',
     highlights: [
-      { icon: 'layers', value: '10', label: 'módulos de auditoría' },
-      { icon: 'check', value: '147', label: 'verificaciones por análisis' },
+      { icon: 'layers', value: '11', label: 'módulos de auditoría' },
+      { icon: 'check', value: '167', label: 'verificaciones por análisis' },
       { icon: 'clock', value: '~50s', label: 'para el informe completo' },
       { icon: 'shield', value: '0', label: 'datos almacenados' },
     ],
@@ -44,9 +44,9 @@ export const es: Messages = {
   landing: {
     modules: {
       eyebrow: 'Cobertura',
-      title: 'Diez módulos, 147 verificaciones, una nota por dimensión',
+      title: 'Once módulos, 167 verificaciones, una nota por dimensión',
       intro:
-        'Una auditoría de FAST recorre diez dimensiones de calidad y devuelve, para cada una, una nota de 0 a 100, la lista de problemas encontrados, la gravedad de cada uno, cómo corregirlo y el beneficio esperado. El análisis va más allá de la velocidad: también mide cómo leen el sitio los motores de inteligencia artificial y qué tan expuesto está a ataques, dos puntos que la mayoría de las herramientas ignora pero que hoy definen la visibilidad y la disponibilidad.',
+        'Una auditoría de FAST recorre once dimensiones de calidad y devuelve, para cada una, una nota de 0 a 100, la lista de problemas encontrados, la gravedad de cada uno, cómo corregirlo y el beneficio esperado. El análisis va más allá de la velocidad: también mide cómo leen el sitio los motores de inteligencia artificial y qué tan expuesto está a ataques, dos puntos que la mayoría de las herramientas ignora pero que hoy definen la visibilidad y la disponibilidad.',
       checksLabel: 'verificaciones',
       items: [
         {
@@ -85,6 +85,11 @@ export const es: Messages = {
           desc: 'WAF, exposición de la IP de origen, claves y contraseñas en el código servido, stack traces, errores de base de datos y política de divulgación.',
         },
         {
+          name: 'LGPD',
+          checks: 13,
+          desc: 'Consentimiento antes del rastreo, cookies grabadas sin autorización, política de privacidad, encargado (DPO) y formularios que recolectan datos personales, según la ley brasileña de protección de datos.',
+        },
+        {
           name: 'Infraestructura',
           checks: 15,
           desc: 'HTTP/2 y HTTP/3, compresión Brotli y Gzip, política de caché, CDN, resolución de DNS, IPv6 y cadena de redirecciones.',
@@ -108,11 +113,11 @@ export const es: Messages = {
       intro:
         'Todo el proceso es automático y toma menos de un minuto. Usted ve terminar cada módulo, en tiempo real, mientras el análisis avanza.',
       figure:
-        'El camino de una auditoría: una única recolección alimenta los diez módulos, y el informe consolidado es interpretado por IA antes de llegar a usted.',
+        'El camino de una auditoría: una única recolección alimenta los once módulos, y el informe consolidado es interpretado por IA antes de llegar a usted.',
       flow: [
         'URL',
         'Recolección en navegador real',
-        '10 módulos en paralelo',
+        '11 módulos en paralelo',
         'Notas y problemas',
         'Plan de acción por IA',
       ],
@@ -126,7 +131,7 @@ export const es: Messages = {
           desc: 'Un navegador Chromium real carga el sitio en escritorio y en móvil y recoge, en una sola pasada, métricas de rendimiento, red, DOM, DNS y TLS.',
         },
         {
-          title: 'Diez módulos analizan en paralelo',
+          title: 'Once módulos analizan en paralelo',
           desc: 'Cada módulo aplica sus verificaciones sobre la misma recolección y devuelve una nota de 0 a 100, los problemas encontrados y la evidencia de cada uno.',
         },
         {
@@ -155,6 +160,7 @@ export const es: Messages = {
         { feature: 'Cabeceras de seguridad, TLS y cookies', pagespeed: false },
         { feature: 'Exposición: WAF, IP de origen, claves en el código', pagespeed: false },
         { feature: 'Accesibilidad y UX', pagespeed: 'partial' },
+  { feature: 'LGPD: consentimiento, cookies y política de privacidad', pagespeed: false },
         { feature: 'Plan de acción priorizado por IA', pagespeed: false },
         { feature: 'Exportación en PDF y en JSON para IA', pagespeed: false },
       ],
@@ -214,8 +220,12 @@ export const es: Messages = {
           a: 'No. La evaluación de seguridad y protección es estrictamente pasiva: analiza solo lo que el sitio ya devuelve al ser visitado, sin enviar ningún payload de ataque. Es seguro apuntarla a un sitio en producción.',
         },
         {
+          q: '¿FAST audita el cumplimiento de la LGPD?',
+          a: 'FAST verifica lo observable desde fuera: si los rastreadores y las cookies se disparan antes del consentimiento, si hay un banner con opción de rechazo, si la política de privacidad existe y cita la LGPD, si el encargado (DPO) está identificado y si los formularios advierten sobre el uso de los datos. No sustituye un dictamen jurídico: la base legal, el registro de las operaciones y los contratos con operadores no son visibles desde el navegador.',
+        },
+        {
           q: '¿Cuánto tarda una auditoría?',
-          a: 'Entre 30 y 60 segundos en la mayoría de los sitios. Cargar la página en un navegador real es el paso más lento; los diez módulos se ejecutan en paralelo sobre la misma recolección, y la interpretación por IA ocurre al final.',
+          a: 'Entre 30 y 60 segundos en la mayoría de los sitios. Cargar la página en un navegador real es el paso más lento; los once módulos se ejecutan en paralelo sobre la misma recolección, y la interpretación por IA ocurre al final.',
         },
         {
           q: '¿Necesito instalar algo o tocar el código del sitio?',
@@ -238,7 +248,7 @@ export const es: Messages = {
       cta: 'Analizar un sitio ahora',
       points: [
         'FAST audita cualquier sitio público en menos de un minuto, sin registro y sin instalar nada.',
-        'Son 147 verificaciones distribuidas en diez módulos, de Core Web Vitals a la exposición de la infraestructura.',
+        'Son 167 verificaciones distribuidas en once módulos, de Core Web Vitals a la conformidad con la LGPD.',
         'Cada problema viene con su gravedad, tiempo estimado de corrección y beneficio esperado.',
         'Una IA interpreta el informe y entrega el plan de acción ya priorizado.',
         'No se almacena nada: el informe vive en su pantalla y usted se lo lleva en PDF o JSON.',

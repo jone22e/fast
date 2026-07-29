@@ -5,7 +5,7 @@ export const zh: Messages = {
   htmlLang: 'zh-CN',
 
   meta: {
-    title: 'FAST — 全面网站审计：性能、SEO、GEO 与 AI',
+    title: 'FAST — 全面网站审计：性能、SEO、GEO、LGPD 与 AI',
     description: '几秒内审计任意网站：性能、SEO、面向 AI 的 GEO、无障碍与安全，并给出已排序的行动计划。无需注册。',
   },
 
@@ -34,8 +34,8 @@ export const zh: Messages = {
     tryLabel: '试试：',
     scrollCue: '看看 FAST 分析什么',
     highlights: [
-      { icon: 'layers', value: '10', label: '个审计模块' },
-      { icon: 'check', value: '147', label: '项检查' },
+      { icon: 'layers', value: '11', label: '个审计模块' },
+      { icon: 'check', value: '167', label: '项检查' },
       { icon: 'clock', value: '~50秒', label: '生成完整报告' },
       { icon: 'shield', value: '0', label: '数据留存' },
     ],
@@ -44,9 +44,9 @@ export const zh: Messages = {
   landing: {
     modules: {
       eyebrow: '覆盖范围',
-      title: '十个模块、147 项检查，每个维度一个评分',
+      title: '十一个模块、167 项检查，每个维度一个评分',
       intro:
-        'FAST 的一次审计会走遍十个质量维度，为每个维度给出 0 到 100 的评分、发现的问题清单、各问题的严重程度、修复方法与预期收益。分析不止于速度：它同时衡量网站被人工智能引擎读取的效果，以及暴露在攻击面前的程度——这两点大多数工具都忽略，但今天它们决定着可见度与可用性。',
+        'FAST 的一次审计会走遍十一个质量维度，为每个维度给出 0 到 100 的评分、发现的问题清单、各问题的严重程度、修复方法与预期收益。分析不止于速度：它同时衡量网站被人工智能引擎读取的效果，以及暴露在攻击面前的程度——这两点大多数工具都忽略，但今天它们决定着可见度与可用性。',
       checksLabel: '项检查',
       items: [
         {
@@ -85,6 +85,11 @@ export const zh: Messages = {
           desc: 'WAF、源站 IP 暴露、对外代码中的密钥与口令、堆栈信息、数据库错误与漏洞披露政策。',
         },
         {
+          name: 'LGPD',
+          checks: 13,
+          desc: '追踪前是否取得同意、未经授权写入的 Cookie、隐私政策、数据保护官（DPO），以及收集个人数据的表单——依据巴西数据保护法。',
+        },
+        {
           name: '基础设施',
           checks: 15,
           desc: 'HTTP/2 与 HTTP/3、Brotli 与 Gzip 压缩、缓存策略、CDN、DNS 解析、IPv6 与跳转链。',
@@ -106,8 +111,8 @@ export const zh: Messages = {
       eyebrow: '运作方式',
       title: '四步走完从网址到行动计划',
       intro: '整个流程全自动，用时不到一分钟。分析进行时，你可以实时看到每个模块依次完成。',
-      figure: '一次审计的路径：一次采集喂给十个模块，汇总后的报告先经 AI 解读，再呈现给你。',
-      flow: ['网址', '真实浏览器采集', '10 个模块并行', '评分与问题', 'AI 行动计划'],
+      figure: '一次审计的路径：一次采集喂给十一个模块，汇总后的报告先经 AI 解读，再呈现给你。',
+      flow: ['网址', '真实浏览器采集', '11 个模块并行', '评分与问题', 'AI 行动计划'],
       items: [
         {
           title: '你输入网址',
@@ -118,7 +123,7 @@ export const zh: Messages = {
           desc: '真实的 Chromium 浏览器在桌面与手机两种形态下加载网站，一次性采集性能、网络、DOM、DNS 与 TLS 指标。',
         },
         {
-          title: '十个模块并行分析',
+          title: '十一个模块并行分析',
           desc: '每个模块对同一份采集数据执行各自的检查，返回 0 到 100 的评分、发现的问题以及每项问题的证据。',
         },
         {
@@ -147,6 +152,7 @@ export const zh: Messages = {
         { feature: '安全响应头、TLS 与 Cookie', pagespeed: false },
         { feature: '暴露面：WAF、源站 IP、代码中的密钥', pagespeed: false },
         { feature: '无障碍与用户体验', pagespeed: 'partial' },
+  { feature: 'LGPD：同意机制、Cookie 与隐私政策', pagespeed: false },
         { feature: '由 AI 排定优先级的行动计划', pagespeed: false },
         { feature: '导出 PDF 与供 AI 使用的 JSON', pagespeed: false },
       ],
@@ -205,8 +211,12 @@ export const zh: Messages = {
           a: '不会。安全与防护评估是严格被动的：只分析网站在被访问时本就返回的内容，不发送任何攻击载荷。对生产环境的站点使用是安全的。',
         },
         {
+          q: 'FAST 会做 LGPD 合规审计吗？',
+          a: 'FAST 检查从外部可观察的部分：追踪器与 Cookie 是否在取得同意前触发、是否存在带拒绝选项的横幅、隐私政策是否存在并援引 LGPD、是否标明数据保护官，以及表单是否就数据用途作出告知。它不能替代法律意见：法律依据、处理活动记录以及与处理者签订的合同，都不是浏览器能看到的。',
+        },
+        {
           q: '一次审计需要多久？',
-          a: '多数网站在 30 到 60 秒之间。用真实浏览器加载页面是最慢的一步；十个模块基于同一份采集并行运行，AI 解读则在最后进行。',
+          a: '多数网站在 30 到 60 秒之间。用真实浏览器加载页面是最慢的一步；十一个模块基于同一份采集并行运行，AI 解读则在最后进行。',
         },
         {
           q: '需要安装什么或改动网站代码吗？',
@@ -229,7 +239,7 @@ export const zh: Messages = {
       cta: '立即分析一个网站',
       points: [
         'FAST 可在一分钟内审计任意公开网站，无需注册，也无需安装任何东西。',
-        '共有 147 项检查，分布在十个模块中，从 Core Web Vitals 到基础设施暴露面。',
+        '共有 167 项检查，分布在十一个模块中，从 Core Web Vitals 到 LGPD 合规。',
         '每个问题都附带严重程度、预计修复时间与预期收益。',
         'AI 通读报告，直接给出已排好优先级的行动计划。',
         '不留存任何数据：报告只在你的屏幕上，可导出为 PDF 或 JSON 带走。',

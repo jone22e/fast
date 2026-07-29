@@ -24,6 +24,7 @@ const MODULE_ICONS = [
   'accessibility',
   'security',
   'protection',
+  'lgpd',
   'infrastructure',
   'mobile',
   'ux',

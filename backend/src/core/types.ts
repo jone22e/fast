@@ -20,7 +20,8 @@ export type CategoryId =
   | 'accessibility'
   | 'infrastructure'
   | 'mobile'
-  | 'ux';
+  | 'ux'
+  | 'lgpd';
 
 /** Problema encontrado por um plugin. */
 export interface Issue {
@@ -311,8 +312,15 @@ export interface DomSnapshot {
     fields: number;
     hasSubmit: boolean;
     hasPassword: boolean;
+    /** Tipos de dado pessoal identificados nos campos (email, cpf, telefone…). */
+    personalFields: string[];
+    hasConsentCheckbox: boolean;
+    hasPrivacyLink: boolean;
   }[];
   navElements: number;
+  /** LGPD: banner de consentimento visível e plataforma reconhecida. */
+  consentBanner: boolean;
+  cmp: string | null;
   ctaCandidates: string[];
   fontFamilies: string[];
   colorCount: number;

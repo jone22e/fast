@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
-    <title>FAST — Auditoria completa de sites: performance, SEO, GEO e IA</title>
+    <title>FAST — Auditoria completa de sites: performance, SEO, GEO, LGPD e IA</title>
     <!-- Entre 70 e 165 caracteres: acima disso o buscador corta o trecho. -->
     <meta
       name="description"
-      content="Audite qualquer site em segundos: performance, SEO, GEO para IAs, acessibilidade e segurança, com plano de ação priorizado. Sem cadastro."
+      content="Audite qualquer site em segundos: performance, SEO, GEO para IAs, acessibilidade, segurança e LGPD, com plano de ação priorizado. Sem cadastro."
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
@@ -26,7 +26,7 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="FAST" />
-    <meta property="og:title" content="FAST — Auditoria completa de sites: performance, SEO, GEO e IA" />
+    <meta property="og:title" content="FAST — Auditoria completa de sites: performance, SEO, GEO, LGPD e IA" />
     <meta
       property="og:description"
       content="Analise qualquer site em segundos: Core Web Vitals, SEO técnico, GEO (otimização para ChatGPT, Claude, Gemini e Perplexity), acessibilidade, segurança e infraestrutura — com plano de ação gerado por IA."
@@ -72,7 +72,7 @@
             "applicationCategory": "DeveloperApplication",
             "operatingSystem": "Web",
             "url": "https://fast.openflexi.com/",
-            "description": "Plataforma de auditoria web que analisa performance, SEO, GEO, acessibilidade, segurança e infraestrutura de qualquer site, com plano de ação gerado por IA.",
+            "description": "Plataforma de auditoria web que analisa performance, SEO, GEO, acessibilidade, segurança, infraestrutura e conformidade com a LGPD de qualquer site, com plano de ação gerado por IA.",
             "author": { "@id": "https://fast.openflexi.com/#org" },
             "datePublished": "2026-07-28",
             "dateModified": "2026-07-28",
@@ -115,10 +115,18 @@
               },
               {
                 "@type": "Question",
+                "name": "A FAST faz auditoria de LGPD?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "A FAST verifica o que é observável de fora: se rastreadores e cookies disparam antes do consentimento, se há banner com opção de recusa, se a política de privacidade existe e cita a LGPD, se o encarregado (DPO) está identificado e se os formulários avisam sobre o uso dos dados. Não substitui parecer jurídico: base legal, registro das operações e contratos com operadores não são visíveis pelo navegador."
+                }
+              },
+              {
+                "@type": "Question",
                 "name": "Quanto tempo leva uma auditoria?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Entre 30 e 60 segundos na maioria dos sites. O carregamento da página em navegador real é a etapa mais demorada; os dez módulos rodam em paralelo sobre a mesma coleta, e a interpretação por IA acontece ao final."
+                  "text": "Entre 30 e 60 segundos na maioria dos sites. O carregamento da página em navegador real é a etapa mais demorada; os onze módulos rodam em paralelo sobre a mesma coleta, e a interpretação por IA acontece ao final."
                 }
               },
               {

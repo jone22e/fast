@@ -25,6 +25,7 @@ const CATEGORY_ICONS: Record<CategoryId, string> = {
   protection: 'protection',
   accessibility: 'accessibility',
   infrastructure: 'infrastructure',
+  lgpd: 'lgpd',
   mobile: 'mobile',
   ux: 'ux',
 };

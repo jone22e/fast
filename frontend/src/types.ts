@@ -7,7 +7,7 @@ export type Difficulty = 'facil' | 'media' | 'dificil';
 
 export type CategoryId =
   | 'performance' | 'seo' | 'geo' | 'content' | 'security' | 'protection'
-  | 'accessibility' | 'infrastructure' | 'mobile' | 'ux';
+  | 'accessibility' | 'infrastructure' | 'lgpd' | 'mobile' | 'ux';
 
 export interface Issue {
   id: string;

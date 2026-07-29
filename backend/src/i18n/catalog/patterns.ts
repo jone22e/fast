@@ -186,10 +186,25 @@ export const VALUE_PATTERNS: Pattern[] = [
   { pt: '{0} IP(s)', en: '{0} IP(s)', es: '{0} IP', zh: '{0} 个 IP' },
   { pt: '{0} endereço(s)', en: '{0} address(es)', es: '{0} dirección(es)', zh: '{0} 个地址' },
 
+  // ---- módulo LGPD ----------------------------------------------------------
+  { pt: '{0} rastreador(es)', en: '{0} tracker(s)', es: '{0} rastreador(es)', zh: '{0} 个追踪器' },
+  { pt: '{0} cookie(s)', en: '{0} cookie(s)', es: '{0} cookie(s)', zh: '{0} 个 Cookie' },
+  { pt: '{0} acima de 13 meses', en: '{0} over 13 months', es: '{0} por encima de 13 meses', zh: '{0} 个超过 13 个月' },
+  { pt: '{0} de terceiros', en: '{0} third-party', es: '{0} de terceros', zh: '{0} 个来自第三方' },
+  { pt: '{0}/{1} marcadores', en: '{0}/{1} markers', es: '{0}/{1} marcadores', zh: '{1} 项中命中 {0} 项' },
+  { pt: 'com contato direto', en: 'with a direct contact', es: 'con contacto directo', zh: '并提供联系方式' },
+  { pt: 'citado, sem contato', en: 'named, without a contact', es: 'citado, sin contacto', zh: '有提及，但无联系方式' },
+  { pt: 'não identificado', en: 'not identified', es: 'no identificado', zh: '未标明' },
+  { pt: 'não detectada', en: 'not detected', es: 'no detectada', zh: '未检测到' },
+  { pt: 'sem coleta', en: 'no collection', es: 'sin recolección', zh: '未收集数据' },
+  { pt: '{0} sem aviso', en: '{0} without a notice', es: '{0} sin aviso', zh: '{0} 个缺少告知' },
+  { pt: '{0} via GET', en: '{0} via GET', es: '{0} vía GET', zh: '{0} 个使用 GET' },
+  { pt: '{0} para HTTP', en: '{0} to HTTP', es: '{0} hacia HTTP', zh: '{0} 个指向 HTTP' },
+
   // ---- palavras isoladas ----------------------------------------------------
   { pt: 'ausente', en: 'missing', es: 'ausente', zh: '缺失' },
   { pt: 'presente, mas permissiva', en: 'present, but permissive', es: 'presente, pero permisiva', zh: '已设置，但过于宽松' },
-  { pt: 'presente', en: 'present', es: 'presente', zh: '已设置' },
+  { pt: 'presente', en: 'present', es: 'presente', zh: '存在' },
   { pt: 'padrão (index, follow)', en: 'default (index, follow)', es: 'predeterminado (index, follow)', zh: '默认（index, follow）' },
   { pt: 'sem campo de senha', en: 'no password field', es: 'sin campo de contraseña', zh: '无密码字段' },
   { pt: 'sem compressão', en: 'no compression', es: 'sin compresión', zh: '未压缩' },

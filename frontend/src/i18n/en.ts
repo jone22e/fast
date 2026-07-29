@@ -5,7 +5,7 @@ export const en: Messages = {
   htmlLang: 'en',
 
   meta: {
-    title: 'FAST — Complete website audit: performance, SEO, GEO and AI',
+    title: 'FAST — Complete website audit: performance, SEO, GEO, LGPD and AI',
     description: 'Audit any site in seconds: performance, SEO, GEO for AI engines, accessibility and security, with a prioritised action plan. No sign-up.',
   },
 
@@ -34,8 +34,8 @@ export const en: Messages = {
     tryLabel: 'Try:',
     scrollCue: 'See what FAST analyses',
     highlights: [
-      { icon: 'layers', value: '10', label: 'audit modules' },
-      { icon: 'check', value: '147', label: 'checks per analysis' },
+      { icon: 'layers', value: '11', label: 'audit modules' },
+      { icon: 'check', value: '167', label: 'checks per analysis' },
       { icon: 'clock', value: '~50s', label: 'for the full report' },
       { icon: 'shield', value: '0', label: 'data stored' },
     ],
@@ -44,9 +44,9 @@ export const en: Messages = {
   landing: {
     modules: {
       eyebrow: 'Coverage',
-      title: 'Ten modules, 147 checks, one score per dimension',
+      title: 'Eleven modules, 167 checks, one score per dimension',
       intro:
-        'A FAST audit walks through ten quality dimensions and returns, for each one, a score from 0 to 100, the list of problems found, how severe each is, how to fix it and the expected gain. The analysis goes beyond speed: it also measures how the site is read by artificial intelligence engines and how exposed it is to attack — two things most tools ignore, yet which today decide visibility and uptime.',
+        'A FAST audit walks through eleven quality dimensions and returns, for each one, a score from 0 to 100, the list of problems found, how severe each is, how to fix it and the expected gain. The analysis goes beyond speed: it also measures how the site is read by artificial intelligence engines and how exposed it is to attack — two things most tools ignore, yet which today decide visibility and uptime.',
       checksLabel: 'checks',
       items: [
         {
@@ -85,6 +85,11 @@ export const en: Messages = {
           desc: 'WAF, origin IP exposure, keys and passwords in the served code, stack traces, database errors and disclosure policy.',
         },
         {
+          name: 'LGPD',
+          checks: 13,
+          desc: 'Consent before tracking, cookies written without authorisation, privacy policy, data protection officer and forms that collect personal data — under Brazil’s data protection law.',
+        },
+        {
           name: 'Infrastructure',
           checks: 15,
           desc: 'HTTP/2 and HTTP/3, Brotli and Gzip compression, caching policy, CDN, DNS resolution, IPv6 and the redirect chain.',
@@ -108,8 +113,8 @@ export const en: Messages = {
       intro:
         'The whole process is automatic and takes less than a minute. You watch each module finish, in real time, while the analysis runs.',
       figure:
-        'The path of an audit: a single collection feeds all ten modules, and the consolidated report is interpreted by AI before it reaches you.',
-      flow: ['URL', 'Collection in a real browser', '10 modules in parallel', 'Scores and problems', 'AI action plan'],
+        'The path of an audit: a single collection feeds all eleven modules, and the consolidated report is interpreted by AI before it reaches you.',
+      flow: ['URL', 'Collection in a real browser', '11 modules in parallel', 'Scores and problems', 'AI action plan'],
       items: [
         {
           title: 'You enter the URL',
@@ -120,7 +125,7 @@ export const en: Messages = {
           desc: 'A real Chromium browser loads the site on desktop and on mobile and collects, in a single pass, performance, network, DOM, DNS and TLS metrics.',
         },
         {
-          title: 'Ten modules analyse in parallel',
+          title: 'Eleven modules analyse in parallel',
           desc: 'Each module applies its checks to the same collection and returns a score from 0 to 100, the problems found and the evidence for each one.',
         },
         {
@@ -149,6 +154,7 @@ export const en: Messages = {
         { feature: 'Security headers, TLS and cookies', pagespeed: false },
         { feature: 'Exposure: WAF, origin IP, keys in the code', pagespeed: false },
         { feature: 'Accessibility and UX', pagespeed: 'partial' },
+  { feature: 'LGPD: consent, cookies and privacy policy', pagespeed: false },
         { feature: 'AI-prioritised action plan', pagespeed: false },
         { feature: 'Export to PDF and to JSON for AI', pagespeed: false },
       ],
@@ -208,8 +214,12 @@ export const en: Messages = {
           a: 'No. The security and protection assessment is strictly passive: it looks only at what the site already returns when visited, sending no attack payload at all. It is safe to point at a production site.',
         },
         {
+          q: 'Does FAST audit LGPD compliance?',
+          a: 'FAST checks what is observable from the outside: whether trackers and cookies fire before consent, whether there is a banner with a refuse option, whether the privacy policy exists and cites the LGPD, whether the data protection officer is identified and whether forms warn about data use. It is not a substitute for legal advice: legal basis, records of processing and contracts with processors are not visible from a browser.',
+        },
+        {
           q: 'How long does an audit take?',
-          a: 'Between 30 and 60 seconds on most sites. Loading the page in a real browser is the slowest step; the ten modules run in parallel over the same collection, and the AI interpretation happens at the end.',
+          a: 'Between 30 and 60 seconds on most sites. Loading the page in a real browser is the slowest step; the eleven modules run in parallel over the same collection, and the AI interpretation happens at the end.',
         },
         {
           q: 'Do I need to install anything or touch the site code?',
@@ -232,7 +242,7 @@ export const en: Messages = {
       cta: 'Analyse a site now',
       points: [
         'FAST audits any public site in under a minute, with no sign-up and nothing to install.',
-        '147 checks across ten modules, from Core Web Vitals to infrastructure exposure.',
+        '167 checks across eleven modules, from Core Web Vitals to LGPD compliance.',
         'Every problem comes with its severity, estimated fix time and expected gain.',
         'An AI reads the report and hands you the action plan already prioritised.',
         'Nothing is stored: the report lives on your screen and you take it away as PDF or JSON.',
