@@ -52,6 +52,10 @@ fi
 # Atrás de um CDN (CloudFront), a origem recebe HTTP e NÃO deve redirecionar —
 # senão entra em loop (ERR_TOO_MANY_REDIRECTS). O CDN termina o TLS com o
 # visitante. Ative com FAST_BEHIND_CDN=1 no .env.
+# Lê direto do .env se não veio pelo ambiente (mais robusto que depender do make).
+if [ -z "${FAST_BEHIND_CDN:-}" ] && [ -f "${APP_DIR}/.env" ]; then
+  FAST_BEHIND_CDN="$(grep -E '^FAST_BEHIND_CDN=' "${APP_DIR}/.env" | tail -1 | cut -d= -f2- | tr -d '"'\'' ')"
+fi
 case "${FAST_BEHIND_CDN:-}" in
   1|true|yes|on) BEHIND_CDN=1 ;;
   *)             BEHIND_CDN=0 ;;

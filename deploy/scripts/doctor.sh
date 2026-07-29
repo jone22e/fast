@@ -13,7 +13,10 @@ ok()   { printf "  ${GREEN}✓${NC} %s\n" "$1"; }
 bad()  { printf "  ${RED}✗${NC} %s\n" "$1"; }
 warn() { printf "  ${YELL}!${NC} %s\n" "$1"; }
 
+IS_ROOT=0; [ "$(id -u)" = "0" ] && IS_ROOT=1
+
 printf "\nDiagnóstico do FAST\n───────────────────\n\n"
+[ "$IS_ROOT" = "1" ] || printf "  ${YELL}!${NC} Sem sudo: checagens de certificado e nginx exigem root. Rode 'sudo make doctor' para o diagnóstico completo.\n\n"
 
 # ---- Node -------------------------------------------------------------------
 if command -v node >/dev/null 2>&1; then
@@ -84,15 +87,24 @@ fi
 
 # ---- nginx ------------------------------------------------------------------
 if command -v nginx >/dev/null 2>&1; then
-  nginx -t >/dev/null 2>&1 && ok "Configuração do nginx válida" || bad "Configuração do nginx inválida (nginx -t)"
+  if [ "$IS_ROOT" = "1" ]; then
+    nginx -t >/dev/null 2>&1 && ok "Configuração do nginx válida" || bad "Configuração do nginx inválida (nginx -t)"
+  else
+    # Sem root, o nginx -t não lê os certificados e falha por permissão (falso
+    # negativo). Não reportamos como erro.
+    warn "Config do nginx: rode 'sudo make doctor' para validar (nginx -t exige root)"
+  fi
   [ -L "/etc/nginx/sites-enabled/${DOMAIN}" ] && ok "Site ${DOMAIN} habilitado" || warn "Site ${DOMAIN} não habilitado — rode: sudo make nginx"
 else
   warn "nginx não instalado"
 fi
 
 # ---- TLS --------------------------------------------------------------------
+# /etc/letsencrypt/live só é legível por root; sem sudo daria falso negativo.
 CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
-if [ -f "$CERT" ]; then
+if [ "$IS_ROOT" != "1" ]; then
+  warn "Certificado da origem: rode 'sudo make doctor' para checar (arquivos exigem root)"
+elif [ -f "$CERT" ]; then
   end="$(openssl x509 -enddate -noout -in "$CERT" 2>/dev/null | cut -d= -f2)"
   days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
   if [ "$days" -gt 30 ]; then ok "Certificado TLS válido por ${days} dias"

@@ -9,8 +9,8 @@
 
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-.PHONY: help install update build deps env ssl nginx service start stop restart \
-        status logs dev clean uninstall check doctor
+.PHONY: help install update cdn cf-invalidate build deps env ssl nginx service \
+        start stop restart status logs dev clean uninstall check doctor
 
 # ---- Configuração ------------------------------------------------------------
 APP_NAME    := fast
@@ -47,6 +47,7 @@ help:
 	@printf "\n$(GREEN)FAST$(NC) — auditoria web (performance + SEO + GEO + IA)\n\n"
 	@printf "  $(YELL)sudo make install$(NC)   Instalação completa: dependências, build, nginx, SSL e serviço\n"
 	@printf "  $(YELL)sudo make update$(NC)    Atualiza o código, reconstrói e reinicia o serviço\n"
+	@printf "  $(YELL)sudo make cdn$(NC)       Deploy atrás do CloudFront: sem redirect na origem + invalida cache\n"
 	@printf "\n  Comandos auxiliares:\n"
 	@printf "    make dev         Sobe backend e frontend em modo de desenvolvimento\n"
 	@printf "    make build       Compila backend e frontend\n"
@@ -96,6 +97,51 @@ update: check
 	@$(MAKE) --no-print-directory restart
 	$(call ok,"Atualização concluída")
 	@printf "\n  https://$(DOMAIN)\n\n"
+
+# =============================================================================
+#  DEPLOY ATRÁS DE CDN (CloudFront) — um comando só
+#  Uso:  sudo make cdn
+#  Grava FAST_BEHIND_CDN=1, atualiza, regenera o nginx sem redirect na origem,
+#  (re)instala o serviço e invalida o cache do CloudFront.
+# =============================================================================
+cdn: check
+	$(call step,"Aplicando modo atrás de CDN (CloudFront)")
+	@if grep -q '^FAST_BEHIND_CDN=1' .env 2>/dev/null; then \
+	  printf "$(GREEN) ✓$(NC) FAST_BEHIND_CDN=1 já definido\n"; \
+	else \
+	  sed -i '/^FAST_BEHIND_CDN=/d' .env 2>/dev/null || true; \
+	  echo 'FAST_BEHIND_CDN=1' >> .env; \
+	  printf "$(GREEN) ✓$(NC) FAST_BEHIND_CDN=1 gravado no .env\n"; \
+	fi
+	$(call step,"Baixando alterações do repositório")
+	@if [ -d .git ]; then \
+	  git fetch --all --quiet && git pull --ff-only || \
+	    { printf "$(RED)Falha no git pull.$(NC)\n"; exit 1; }; \
+	fi
+	@$(MAKE) --no-print-directory deps
+	@$(MAKE) --no-print-directory build
+	@$(MAKE) --no-print-directory nginx
+	@$(MAKE) --no-print-directory service
+	@$(MAKE) --no-print-directory restart
+	@$(MAKE) --no-print-directory cf-invalidate
+	@printf "\n$(GREEN)══════════════════════════════════════════════════════════$(NC)\n"
+	@printf "$(GREEN) Modo CDN aplicado — a origem não redireciona mais.$(NC)\n"
+	@printf "$(GREEN)══════════════════════════════════════════════════════════$(NC)\n\n"
+	@printf "  Confira agora pelo CloudFront. Se ainda ver o loop, faltou\n"
+	@printf "  invalidar o cache (defina FAST_CLOUDFRONT_ID no .env ou faça\n"
+	@printf "  a invalidação /* pelo console).\n\n"
+
+# Invalida o cache do CloudFront, se FAST_CLOUDFRONT_ID estiver no .env.
+cf-invalidate:
+	@if [ -n "$(FAST_CLOUDFRONT_ID)" ] && command -v aws >/dev/null 2>&1; then \
+	  aws cloudfront create-invalidation --distribution-id "$(FAST_CLOUDFRONT_ID)" --paths "/*" >/dev/null 2>&1 \
+	    && printf "$(GREEN) ✓$(NC) Cache do CloudFront invalidado (/*)\n" \
+	    || printf "$(YELL) !$(NC) Falha ao invalidar o CloudFront — verifique credenciais AWS ou faça pelo console (/*)\n"; \
+	elif [ -n "$(FAST_CLOUDFRONT_ID)" ]; then \
+	  printf "$(YELL) !$(NC) aws CLI não instalado — invalide o CloudFront manualmente (/*)\n"; \
+	else \
+	  printf "$(YELL) !$(NC) FAST_CLOUDFRONT_ID não definido — invalide o cache do CloudFront manualmente (/*)\n"; \
+	fi
 
 # =============================================================================
 #  ETAPAS
