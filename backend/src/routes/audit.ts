@@ -6,6 +6,7 @@ import { getPlugins } from '../core/registry.js';
 import type { AuditEvent } from '../core/types.js';
 import { getCatalog, normalizeLang } from '../i18n/index.js';
 import type { Lang } from '../i18n/index.js';
+import { putReport } from '../report/store.js';
 
 /** Normaliza e valida a URL informada, bloqueando destinos internos. */
 function normalizeUrl(raw: string): URL {
@@ -269,7 +270,16 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
 
     const send = (event: AuditEvent): void => {
       if (closed) return;
-      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+
+      // O relatório pronto fica alguns minutos na guarda em memória e sai com
+      // um id. É por ele que o navegador pede o PDF depois — sem reenviar o
+      // relatório inteiro, que um WAF na frente do site leria como ataque.
+      const payload: AuditEvent =
+        event.type === 'report'
+          ? { ...event, report: { ...event.report, id: putReport(event.report) } }
+          : event;
+
+      reply.raw.write(`data: ${JSON.stringify(payload)}\n\n`);
     };
 
     // Mantém a conexão viva atrás de proxies durante etapas longas.

@@ -67,6 +67,8 @@ export interface AiAnalysis {
 }
 
 export interface AuditReport {
+  /** Id temporário para exportar o PDF sem reenviar o relatório ao servidor. */
+  id?: string;
   url: string;
   finalUrl: string;
   generatedAt: string;

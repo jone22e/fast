@@ -91,14 +91,9 @@ async function exportPdf(): Promise<void> {
   if (pdfLoading.value) return;
   pdfLoading.value = true;
   pdfError.value = false;
+
   try {
-    const res = await fetch(`/api/report/pdf?lang=${lang.value}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(props.report),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
+    const blob = await fetchPdf();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -111,6 +106,33 @@ async function exportPdf(): Promise<void> {
     pdfLoading.value = false;
   }
 }
+
+/**
+ * Busca o PDF pelo id do relatório guardado no servidor.
+ *
+ * O reenvio do relatório (POST) fica como reserva, para o caso de a guarda já
+ * ter expirado. Ele é o caminho arriscado: o corpo carrega os próprios textos
+ * de correção — `<script>`, `eval()`, "SQL injection" — e um WAF na frente do
+ * site responde 403 antes de a requisição chegar à aplicação.
+ */
+async function fetchPdf(): Promise<Blob> {
+  const id = props.report.id;
+
+  if (id) {
+    const res = await fetch(`/api/report/pdf/${id}?lang=${lang.value}`);
+    if (res.ok) return res.blob();
+    // 404 = expirou; qualquer outro erro também cai para a reserva.
+  }
+
+  const res = await fetch(`/api/report/pdf?lang=${lang.value}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(props.report),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.blob();
+}
+
 </script>
 
 <template>

@@ -350,6 +350,11 @@ export interface AiAnalysis {
 
 /** Relatório final devolvido ao frontend. */
 export interface AuditReport {
+  /**
+   * Identificador temporário para exportar o PDF sem reenviar o relatório.
+   * Preenchido pela rota de streaming; expira em minutos (report/store.ts).
+   */
+  id?: string;
   url: string;
   finalUrl: string;
   generatedAt: string;
