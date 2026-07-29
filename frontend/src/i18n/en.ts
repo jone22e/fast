@@ -392,6 +392,10 @@ export const en: Messages = {
   footer: {
     blurb:
       'Audits run on demand, with no authentication and no persistence. No result is stored once the analysis ends.',
+    legalUrl: '/privacy.html',
+    privacy: 'Privacy policy',
+    termsAnchor: '#terms',
+    terms: 'Terms of use',
     by: 'By',
     updated: 'updated on',
   },

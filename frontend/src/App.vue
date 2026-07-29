@@ -176,6 +176,17 @@ function newAudit(): void {
           <a href="#resumo">{{ t.landing.summary.eyebrow }}</a>
         </nav>
 
+        <!--
+          Páginas legais: HTML estático, uma por idioma. Ficam fora da SPA de
+          propósito — precisam ser legíveis por rastreadores e por qualquer
+          verificador que as busque sem executar JavaScript.
+        -->
+        <nav class="foot-legal" :aria-label="t.footer.privacy">
+          <a :href="t.footer.legalUrl">{{ t.footer.privacy }}</a>
+          <a :href="`${t.footer.legalUrl}${t.footer.termsAnchor}`">{{ t.footer.terms }}</a>
+          <a href="/.well-known/security.txt">security.txt</a>
+        </nav>
+
         <p class="foot-meta">
           {{ t.footer.by }}
           <a href="https://openflexi.com/" target="_blank" rel="noopener noreferrer">OpenFlexi</a>
@@ -611,12 +622,27 @@ input:focus {
   gap: 6px 18px;
 }
 
-.foot-nav a {
+.foot-nav a,
+.foot-legal a {
   font-size: 13px;
   color: var(--text-muted);
   min-height: 30px;
   display: inline-flex;
   align-items: center;
+}
+
+.foot-legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.foot-legal a {
+  color: var(--text-dim);
+}
+
+.foot-legal a:hover {
+  color: var(--accent);
 }
 
 .foot-meta {

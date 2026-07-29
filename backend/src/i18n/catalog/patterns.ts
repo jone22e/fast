@@ -196,6 +196,7 @@ export const VALUE_PATTERNS: Pattern[] = [
   { pt: 'citado, sem contato', en: 'named, without a contact', es: 'citado, sin contacto', zh: '有提及，但无联系方式' },
   { pt: 'não identificado', en: 'not identified', es: 'no identificado', zh: '未标明' },
   { pt: 'não detectada', en: 'not detected', es: 'no detectada', zh: '未检测到' },
+  { pt: 'não aplicável', en: 'not applicable', es: 'no aplicable', zh: '不适用' },
   { pt: 'sem coleta', en: 'no collection', es: 'sin recolección', zh: '未收集数据' },
   { pt: '{0} sem aviso', en: '{0} without a notice', es: '{0} sin aviso', zh: '{0} 个缺少告知' },
   { pt: '{0} via GET', en: '{0} via GET', es: '{0} vía GET', zh: '{0} 个使用 GET' },

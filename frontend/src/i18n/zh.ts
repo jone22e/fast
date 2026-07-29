@@ -386,6 +386,10 @@ export const zh: Messages = {
 
   footer: {
     blurb: '审计按需执行，无需登录，也不做任何持久化。分析结束后不保存任何结果。',
+    legalUrl: '/yinsi.html',
+    privacy: '隐私政策',
+    termsAnchor: '#terms',
+    terms: '使用条款',
     by: '由',
     updated: '更新于',
   },

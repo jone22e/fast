@@ -12,7 +12,8 @@
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
     "start": "npm run start --workspace=backend",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "verify": "node backend/scripts/check-i18n.mjs && node backend/scripts/check-legal-pages.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

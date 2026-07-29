@@ -8,6 +8,8 @@
 - [Auditoria em tempo real (SSE)](https://fast.openflexi.com/api/audit/stream): mesma auditoria com progresso evento a evento.
 - [Módulos disponíveis](https://fast.openflexi.com/api/modules): lista dos módulos de auditoria e suas verificações.
 
+- [Política de privacidade e termos de uso](https://fast.openflexi.com/privacidade.html): quais dados a FAST trata, com que base legal e como exercer os direitos previstos na LGPD.
+
 ## O que a FAST avalia
 - Performance: Core Web Vitals (LCP, CLS, INP, FCP, TTFB, Speed Index, TBT), peso de imagens, JavaScript, CSS e fontes, lazy loading, compressão e cache.
 - SEO tradicional: title, meta description, canonical, robots, headings, links quebrados, sitemap.xml, robots.txt, Open Graph e Twitter Cards.

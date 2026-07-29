@@ -178,5 +178,15 @@ export interface Messages {
 
   errors: { auditFailed: string; retry: string; connectionLost: string };
 
-  footer: { blurb: string; by: string; updated: string };
+  footer: {
+    blurb: string;
+    /** Página legal do idioma — arquivo estático, fora da SPA. */
+    legalUrl: string;
+    privacy: string;
+    /** Âncora da seção de termos dentro da página legal. */
+    termsAnchor: string;
+    terms: string;
+    by: string;
+    updated: string;
+  };
 }

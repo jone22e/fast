@@ -398,6 +398,10 @@ export const es: Messages = {
   footer: {
     blurb:
       'Auditoría ejecutada bajo demanda, sin autenticación y sin persistencia. Ningún resultado se almacena tras finalizar el análisis.',
+    legalUrl: '/privacidad.html',
+    privacy: 'Política de privacidad',
+    termsAnchor: '#terminos',
+    terms: 'Términos de uso',
     by: 'Por',
     updated: 'actualizado el',
   },

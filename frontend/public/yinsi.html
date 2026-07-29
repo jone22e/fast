@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>隐私政策与使用条款 — FAST</title>
+    <meta
+      name="description"
+      content="FAST 如何处理个人数据：收集什么、依据什么法律基础、保存多久，以及如何依据 LGPD（巴西数据保护法）行使权利。"
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://fast.openflexi.com/yinsi.html" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" hreflang="pt-BR" href="https://fast.openflexi.com/privacidade.html" />
+    <link rel="alternate" hreflang="en" href="https://fast.openflexi.com/privacy.html" />
+    <link rel="alternate" hreflang="es" href="https://fast.openflexi.com/privacidad.html" />
+    <link rel="alternate" hreflang="zh" href="https://fast.openflexi.com/yinsi.html" />
+    <link rel="alternate" hreflang="x-default" href="https://fast.openflexi.com/privacy.html" />
+    <link rel="stylesheet" href="/legal.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/">
+        <img src="/favicon.svg" alt="" width="24" height="24" />
+        <span>FAST</span>
+      </a>
+      <nav class="langs" aria-label="语言">
+        <a href="/privacidade.html" hreflang="pt-BR">PT</a>
+        <a href="/privacy.html" hreflang="en">EN</a>
+        <a href="/privacidad.html" hreflang="es">ES</a>
+        <span aria-current="page">中文</span>
+      </nav>
+    </header>
+
+    <main>
+      <article>
+        <h1>隐私政策</h1>
+        <p class="meta">
+          最后更新：<time datetime="2026-07-29">2026 年 7 月 29 日</time> · 巴西第 13.709/2018
+          号法律（LGPD）
+        </p>
+
+        <p class="lead">
+          FAST 是一款网站技术审计工具。它不要求注册，不保留数据库，也不使用追踪 Cookie。
+          本政策直白地说明经过本服务的少量数据。
+        </p>
+
+        <h2 id="controller">1. 谁是控制者</h2>
+        <p>
+          OpenFlexi，负责运营 FAST 并对此处所述的处理作出决定。联系方式：
+          <a href="mailto:business@openflexi.com">business@openflexi.com</a>。
+        </p>
+
+        <h2 id="data">2. 处理哪些数据</h2>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">数据</th>
+              <th scope="col">用途</th>
+              <th scope="col">保存多久</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">你提交的网址</th>
+              <td>用于执行所请求的审计。如果网址的参数中带有个人数据，它们会一同传输——请避免在查询字符串中提交含敏感信息的地址。</td>
+              <td>仅在执行期间</td>
+            </tr>
+            <tr>
+              <th scope="row">IP 地址</th>
+              <td>用于施加限流以防止滥用，并记录访问以便保障安全与排查问题。</td>
+              <td>存于服务器日志，直到日志自动轮转</td>
+            </tr>
+            <tr>
+              <th scope="row">浏览器信息</th>
+              <td>User agent 与语言，随访问一同记录，并用于选择界面语言。</td>
+              <td>存于服务器日志</td>
+            </tr>
+            <tr>
+              <th scope="row">生成的报告</th>
+              <td>使导出 PDF 时无需再把内容经网络回传。</td>
+              <td>最多 15 分钟，且仅在内存中</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="not-done">3. FAST 不做什么</h2>
+        <ul>
+          <li>没有注册、登录或用户档案。</li>
+          <li>没有数据库：任何报告都不会写入磁盘。</li>
+          <li>没有追踪 Cookie、分析工具、广告像素或指纹识别。</li>
+          <li>不会出于商业目的出售、出租或共享数据给第三方。</li>
+          <li>不存在对你产生法律效果的自动化决策。</li>
+        </ul>
+
+        <h2 id="legal-basis">4. 法律依据</h2>
+        <p>
+          处理基于<strong>正当利益</strong>（LGPD 第 7 条第 IX 项）：运行你所请求的服务并防止其被滥用。
+          该处理是最小化、可预期且限于目的所必需的——这正是法律对这一依据所设的条件。
+          访问日志同时满足履行法定义务的要求（第 7 条第 II 项，依据《互联网民法框架》）。
+        </p>
+
+        <h2 id="sharing">5. 数据与谁共享</h2>
+        <p>仅限服务运行所必需的处理者：</p>
+        <ul>
+          <li><strong>主机服务商</strong>——应用运行所在的服务器。</li>
+          <li><strong>内容分发网络（CDN）</strong>——负责分发页面，会看到访问者的 IP 地址。</li>
+          <li>
+            <strong>语言模型</strong>——报告会发送给撰写自然语言分析的模型。基础设施为自有，
+            内容既不用于训练，也不在生成回答后保留。
+          </li>
+        </ul>
+
+        <h2 id="international">6. 跨境传输</h2>
+        <p>
+          CDN 通过多个地区的服务器分发内容，因此可能涉及巴西境外的处理（LGPD 第 33 条）。
+          该传输仅限于交付页面所必需的连接数据。
+        </p>
+
+        <h2 id="rights">7. 数据主体权利</h2>
+        <p>
+          LGPD 第 18 条赋予你以下权利：确认是否存在处理、访问数据、更正、匿名化或删除、
+          数据可携、了解共享情况，以及在以同意为依据时撤回同意。
+        </p>
+        <p>
+          实际上，由于 FAST 不保存报告也不维护账户，可能存在的与你相关的数据仅限访问日志。
+          如需行使任何权利，请写信至
+          <a href="mailto:business@openflexi.com">business@openflexi.com</a>，我们将在 15
+          天内答复。
+        </p>
+
+        <h2 id="dpo">8. 数据保护官（DPO）</h2>
+        <p>
+          依据 LGPD 第 41 条负责个人数据处理的数据保护官由 OpenFlexi 指定，可通过
+          <a href="mailto:business@openflexi.com">business@openflexi.com</a> 联系。
+          该邮箱同时也是巴西数据保护局（ANPD）的沟通渠道。
+        </p>
+
+        <h2 id="security">9. 安全</h2>
+        <p>
+          所有流量均使用带 HSTS 的 HTTPS。应用会发送安全响应头（CSP、X-Frame-Options、
+          X-Content-Type-Options、Referrer-Policy 与 Permissions-Policy），且不泄露软件版本。
+          安全漏洞可按
+          <a href="/.well-known/security.txt">security.txt</a> 所述方式报告。
+        </p>
+
+        <h2 id="changes">10. 变更</h2>
+        <p>本政策的变更会发布在同一页面，并同步更新顶部的更新日期。</p>
+      </article>
+
+      <article id="terms">
+        <h1>使用条款</h1>
+        <p class="meta">最后更新：<time datetime="2026-07-29">2026 年 7 月 29 日</time></p>
+
+        <h2 id="service">1. 服务</h2>
+        <p>
+          FAST 对公开页面执行自动化技术审计，并返回包含评分、所发现问题与修复建议的报告。
+          服务免费，按“现状”提供。
+        </p>
+
+        <h2 id="permitted">2. 允许的使用</h2>
+        <p>
+          请分析你自己拥有或已获授权的站点。分析过程严格被动——FAST 只是像普通访客一样加载页面，
+          读取服务器返回的内容，不发送任何攻击载荷——但选择目标的责任由请求审计的一方承担。
+        </p>
+
+        <h2 id="prohibited">3. 禁止的使用</h2>
+        <ul>
+          <li>以可能压垮 FAST 或被分析站点的量级自动化调用。</li>
+          <li>规避服务的请求限制。</li>
+          <li>利用结果攻击、勒索或羞辱第三方。</li>
+        </ul>
+
+        <h2 id="warranty">4. 不提供保证</h2>
+        <p>
+          结果仅供参考，可能出现误报与漏报。LGPD 模块尤其只检查从外部可观察的内容，
+          <strong>不构成法律意见</strong>：适当的法律依据、处理活动记录以及与处理者签订的合同，
+          都无法由浏览器验证。FAST 给出的任何评分都不能替代专业人士的评估。
+        </p>
+
+        <h2 id="liability">5. 责任限制</h2>
+        <p>
+          OpenFlexi 不对基于报告所作的决定负责，也不对服务不可用负责。使用风险由你自行承担。
+        </p>
+
+        <h2 id="law">6. 适用法律</h2>
+        <p>本条款适用巴西法律，并约定以用户住所地法院解决争议。</p>
+      </article>
+    </main>
+
+    <footer>
+      <a href="/">← 返回 FAST</a>
+      <span>OpenFlexi</span>
+    </footer>
+  </body>
+</html>

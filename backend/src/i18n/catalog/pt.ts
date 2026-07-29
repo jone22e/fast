@@ -97,10 +97,10 @@ export const pt: LangCatalog = {
       'console': 'Sem erros de JavaScript no console',
     },
     lgpd: {
-      'consent-banner': 'Banner de consentimento presente',
-      'cmp': 'Plataforma de consentimento identificada',
       'no-tracking-before-consent': 'Sem rastreadores antes do consentimento',
       'no-cookies-before-consent': 'Sem cookies não essenciais antes do consentimento',
+      'consent-banner': 'Banner de consentimento presente',
+      'cmp': 'Plataforma de consentimento identificada',
       'cookie-expiry': 'Cookies com prazo razoável',
       'third-party-cookies': 'Poucos cookies de terceiros',
       'privacy-policy': 'Política de privacidade acessível',

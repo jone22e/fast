@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Política de Privacidad y Términos de Uso — FAST</title>
+    <meta
+      name="description"
+      content="Cómo FAST trata los datos personales: qué se recolecta, con qué base legal, por cuánto tiempo y cómo ejercer sus derechos bajo la LGPD."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://fast.openflexi.com/privacidad.html" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" hreflang="pt-BR" href="https://fast.openflexi.com/privacidade.html" />
+    <link rel="alternate" hreflang="en" href="https://fast.openflexi.com/privacy.html" />
+    <link rel="alternate" hreflang="es" href="https://fast.openflexi.com/privacidad.html" />
+    <link rel="alternate" hreflang="zh" href="https://fast.openflexi.com/yinsi.html" />
+    <link rel="alternate" hreflang="x-default" href="https://fast.openflexi.com/privacy.html" />
+    <link rel="stylesheet" href="/legal.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/">
+        <img src="/favicon.svg" alt="" width="24" height="24" />
+        <span>FAST</span>
+      </a>
+      <nav class="langs" aria-label="Idioma">
+        <a href="/privacidade.html" hreflang="pt-BR">PT</a>
+        <a href="/privacy.html" hreflang="en">EN</a>
+        <span aria-current="page">ES</span>
+        <a href="/yinsi.html" hreflang="zh">中文</a>
+      </nav>
+    </header>
+
+    <main>
+      <article>
+        <h1>Política de Privacidad</h1>
+        <p class="meta">
+          Última actualización: <time datetime="2026-07-29">29 de julio de 2026</time> · Ley n.º
+          13.709/2018 (LGPD, ley brasileña de protección de datos)
+        </p>
+
+        <p class="lead">
+          FAST es una herramienta de auditoría técnica de sitios web. No exige registro, no mantiene
+          base de datos y no usa cookies de rastreo. Esta política describe, sin rodeos, los pocos
+          datos que pasan por el servicio.
+        </p>
+
+        <h2 id="controlador">1. Quién es el controlador</h2>
+        <p>
+          OpenFlexi, responsable de la operación de FAST y de las decisiones sobre el tratamiento
+          descrito aquí. Contacto:
+          <a href="mailto:business@openflexi.com">business@openflexi.com</a>.
+        </p>
+
+        <h2 id="datos">2. Qué datos se tratan</h2>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Dato</th>
+              <th scope="col">Para qué</th>
+              <th scope="col">Por cuánto tiempo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">La URL informada</th>
+              <td>Ejecutar la auditoría solicitada. Si la URL contiene parámetros con datos personales, estos viajan con ella: evite enviar direcciones con información sensible en la query string.</td>
+              <td>Durante la ejecución</td>
+            </tr>
+            <tr>
+              <th scope="row">Dirección IP</th>
+              <td>Aplicar el límite de solicitudes que protege el servicio del abuso y registrar accesos para seguridad y diagnóstico.</td>
+              <td>En los registros del servidor, hasta la rotación automática</td>
+            </tr>
+            <tr>
+              <th scope="row">Datos del navegador</th>
+              <td>User agent e idioma, registrados junto al acceso y usados para elegir el idioma de la interfaz.</td>
+              <td>En los registros del servidor</td>
+            </tr>
+            <tr>
+              <th scope="row">El informe generado</th>
+              <td>Permitir la exportación en PDF sin reenviar el contenido por la red.</td>
+              <td>Hasta 15 minutos, solo en memoria</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="no-hacemos">3. Lo que FAST no hace</h2>
+        <ul>
+          <li>No hay registro, inicio de sesión ni perfil de usuario.</li>
+          <li>No hay base de datos: ningún informe se graba en disco.</li>
+          <li>No hay cookies de rastreo, analítica, píxeles publicitarios ni fingerprinting.</li>
+          <li>No hay venta, alquiler ni compartición de datos con terceros con fines comerciales.</li>
+          <li>No hay decisiones automatizadas que produzcan efectos jurídicos sobre usted.</li>
+        </ul>
+
+        <h2 id="base-legal">4. Base legal</h2>
+        <p>
+          El tratamiento se apoya en el <strong>interés legítimo</strong> (art. 7, IX de la LGPD):
+          operar el servicio que usted solicitó y protegerlo del uso abusivo. El tratamiento es
+          mínimo, previsible y limitado a lo necesario para la finalidad, que son los requisitos que
+          la propia ley impone a esa base legal. Los registros de acceso también atienden al
+          cumplimiento de una obligación legal (art. 7, II), conforme al Marco Civil de Internet.
+        </p>
+
+        <h2 id="comparticion">5. Con quién se comparten los datos</h2>
+        <p>Solo con los operadores necesarios para que el servicio exista:</p>
+        <ul>
+          <li><strong>Proveedor de alojamiento</strong> — el servidor donde corre la aplicación.</li>
+          <li>
+            <strong>Red de distribución de contenido (CDN)</strong> — entrega las páginas y ve la
+            dirección IP de quien accede.
+          </li>
+          <li>
+            <strong>Modelo de lenguaje</strong> — el informe se envía al modelo que escribe el
+            análisis en lenguaje natural. La infraestructura es propia y el contenido no se usa para
+            entrenamiento ni se retiene tras la respuesta.
+          </li>
+        </ul>
+
+        <h2 id="internacional">6. Transferencia internacional</h2>
+        <p>
+          La CDN distribuye el contenido por servidores en varias regiones, lo que puede implicar
+          procesamiento fuera de Brasil (art. 33 de la LGPD). La transferencia se limita a los datos
+          de conexión necesarios para entregar la página.
+        </p>
+
+        <h2 id="derechos">7. Derechos del titular</h2>
+        <p>
+          El art. 18 de la LGPD le garantiza: confirmación de la existencia del tratamiento, acceso
+          a los datos, corrección, anonimización o eliminación, portabilidad, información sobre
+          compartición y revocación del consentimiento cuando esa sea la base aplicable.
+        </p>
+        <p>
+          En la práctica, como FAST no guarda informes ni mantiene cuentas, los datos que pueden
+          existir sobre usted se reducen a registros de acceso. Para ejercer cualquier derecho,
+          escriba a <a href="mailto:business@openflexi.com">business@openflexi.com</a>:
+          respondemos en un plazo de 15 días.
+        </p>
+
+        <h2 id="encargado">8. Encargado (DPO)</h2>
+        <p>
+          El encargado del tratamiento de datos personales, conforme al art. 41 de la LGPD, es
+          designado por OpenFlexi y puede ser contactado en
+          <a href="mailto:business@openflexi.com">business@openflexi.com</a>. Ese es también
+          el canal para comunicaciones de la autoridad brasileña de protección de datos (ANPD).
+        </p>
+
+        <h2 id="seguridad">9. Seguridad</h2>
+        <p>
+          Todo el tráfico usa HTTPS con HSTS. La aplicación envía cabeceras de seguridad (CSP,
+          X-Frame-Options, X-Content-Type-Options, Referrer-Policy y Permissions-Policy) y no expone
+          versiones de software. Las fallas de seguridad pueden reportarse según el
+          <a href="/.well-known/security.txt">security.txt</a>.
+        </p>
+
+        <h2 id="cambios">10. Cambios</h2>
+        <p>
+          Los cambios en esta política se publican en esta misma página, con la fecha de
+          actualización revisada arriba.
+        </p>
+      </article>
+
+      <article id="terminos">
+        <h1>Términos de Uso</h1>
+        <p class="meta">
+          Última actualización: <time datetime="2026-07-29">29 de julio de 2026</time>
+        </p>
+
+        <h2 id="servicio">1. El servicio</h2>
+        <p>
+          FAST ejecuta una auditoría técnica automatizada de páginas públicas y devuelve un informe
+          con puntuaciones, los problemas encontrados y sugerencias de corrección. El uso es
+          gratuito y se ofrece en el estado en que se encuentra.
+        </p>
+
+        <h2 id="uso-permitido">2. Uso permitido</h2>
+        <p>
+          Analice sitios de su propiedad o para los que tenga autorización. El análisis es
+          estrictamente pasivo — FAST solo carga la página como un visitante común y lee lo que el
+          servidor devuelve, sin enviar ningún payload de ataque —, pero la responsabilidad por la
+          elección del objetivo es de quien solicita la auditoría.
+        </p>
+
+        <h2 id="uso-vedado">3. Uso prohibido</h2>
+        <ul>
+          <li>Automatizar llamadas en un volumen capaz de sobrecargar FAST o el sitio analizado.</li>
+          <li>Eludir los límites de solicitudes del servicio.</li>
+          <li>Usar los resultados para atacar, extorsionar o avergonzar a terceros.</li>
+        </ul>
+
+        <h2 id="garantias">4. Ausencia de garantías</h2>
+        <p>
+          Los resultados son indicativos y pueden contener falsos positivos y falsos negativos. El
+          módulo de LGPD, en particular, verifica solo lo observable desde fuera y
+          <strong>no constituye un dictamen jurídico</strong>: la base legal adecuada, el registro
+          de las operaciones de tratamiento y los contratos con operadores no son verificables por
+          un navegador. Ninguna puntuación de FAST sustituye la evaluación de un profesional.
+        </p>
+
+        <h2 id="responsabilidad">5. Limitación de responsabilidad</h2>
+        <p>
+          OpenFlexi no responde por decisiones tomadas con base en los informes ni por la
+          indisponibilidad del servicio. El uso es por su cuenta y riesgo.
+        </p>
+
+        <h2 id="ley">6. Ley aplicable</h2>
+        <p>
+          Estos términos se rigen por la ley brasileña, y se elige el foro del domicilio del usuario
+          para dirimir controversias.
+        </p>
+      </article>
+    </main>
+
+    <footer>
+      <a href="/">← Volver a FAST</a>
+      <span>OpenFlexi</span>
+    </footer>
+  </body>
+</html>

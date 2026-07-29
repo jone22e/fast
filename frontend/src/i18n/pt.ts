@@ -392,6 +392,10 @@ export const pt: Messages = {
   footer: {
     blurb:
       'Auditoria executada sob demanda, sem autenticação e sem persistência. Nenhum resultado é armazenado após o encerramento da análise.',
+    legalUrl: '/privacidade.html',
+    privacy: 'Política de privacidade',
+    termsAnchor: '#termos',
+    terms: 'Termos de uso',
     by: 'Por',
     updated: 'atualizado em',
   },

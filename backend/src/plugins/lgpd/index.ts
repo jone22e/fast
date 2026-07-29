@@ -63,19 +63,63 @@ const TRACKING_HOSTS: { re: RegExp; origem: string }[] = [
 /** Cookies que sustentam a própria navegação — dispensam consentimento. */
 const ESSENTIAL_COOKIE = /^(sess|phpsessid|jsessionid|asp\.net|csrf|xsrf|__cf|cf_|__host-|__secure-|laravel_session|connect\.sid|wordpress_|wp-|woocommerce_|_shopify|remember_)/i;
 
-const POLICY_HINT = /pol[ií]tica.{0,20}privacidade|privacy.{0,10}policy|aviso.{0,10}privacidade|privacidade/i;
-const TERMS_HINT = /termos?.{0,20}(uso|servi[çc]o)|terms.{0,10}(of.{0,5})?(use|service)/i;
+/**
+ * Como reconhecer o link da política e dos termos.
+ *
+ * Cobre os quatro idiomas por um motivo prático: uma empresa brasileira publica
+ * a política em espanhol ou em inglês com frequência, e o navegador da auditoria
+ * carrega a página no idioma dele. Um padrão só em português diria "sem
+ * política" para um site que tem uma — o pior tipo de erro em um módulo de
+ * conformidade, porque acusa quem está certo.
+ */
+export const POLICY_HINT =
+  /pol[ií]tica.{0,20}privacidad[e]?|privacy.{0,10}(policy|notice)|aviso.{0,20}privacidad[e]?|privacidad[e]?|datenschutz|隐私(政策|声明)?|個人情報/i;
 
-/** Marcadores de que a política realmente fala de LGPD. */
-const LGPD_TERMS = [
-  { key: 'LGPD ou Lei 13.709', re: /lgpd|lei\s*n?[º°]?\s*13\.?709/i },
-  { key: 'titular dos dados', re: /titular(es)?\s+d(os|e)\s+dados|data subject/i },
-  { key: 'base legal ou finalidade', re: /base\s+legal|finalidade\s+d(o|e)\s+tratamento|leg[ií]tim[oa]\s+interesse/i },
-  { key: 'direitos do titular', re: /direitos?\s+d(o|os)\s+titular|solicitar\s+a\s+exclus[ãa]o|revogar\s+o?\s*consentimento/i },
-  { key: 'encarregado (DPO)', re: /encarregad[oa]|data\s+protection\s+officer|\bdpo\b/i },
+export const TERMS_HINT =
+  /termos?.{0,20}(uso|servi[çc]o)|t[ée]rminos.{0,20}(uso|servicio)|terms.{0,10}(of.{0,5})?(use|service)|condi[çc][õo]es.{0,10}de.{0,10}uso|使用条款|服务条款/i;
+
+/**
+ * Marcadores de que a política realmente trata da LGPD.
+ *
+ * Os padrões cobrem os quatro idiomas: uma empresa brasileira pode publicar a
+ * política em inglês, e o navegador da auditoria carrega a página com locale
+ * inglês — sem as variantes, uma política correta seria lida como incompleta.
+ */
+export const LGPD_TERMS = [
+  {
+    key: 'LGPD ou Lei 13.709',
+    re: /lgpd|lei\s*n?[º°]?\s*13\.?709|law\s*(no\.?|n[º°])?\s*13[.,]?709|13\.709/i,
+  },
+  {
+    key: 'titular dos dados',
+    re: /titular(es)?\s+d[oe]s?\s+dados|titular(es)?\s+de\s+los\s+datos|direitos?\s+d[oe]s?\s+titular|derechos?\s+del\s+titular|data\s+subject|数据主体/i,
+  },
+  {
+    key: 'base legal ou finalidade',
+    re: /base\s+legal|finalidade\s+d(o|e)\s+tratamento|leg[ií]tim[oa]\s+interesse|legitimate\s+interest|legal\s+basis|finalidad\s+del\s+tratamiento|法律依据|正当利益/i,
+  },
+  {
+    key: 'direitos do titular',
+    re: /direitos?\s+d(o|os)\s+titular|solicitar\s+a\s+exclus[ãa]o|revogar\s+o?\s*consentimento|data\s+subject\s+rights|your\s+rights\s+under|derechos\s+del\s+titular|revocar\s+el\s+consentimiento|数据主体权利|撤回同意/i,
+  },
+  {
+    key: 'encarregado (DPO)',
+    re: /encarregad[oa]|data\s+protection\s+officer|\bdpo\b|responsable\s+de\s+protecci[óo]n\s+de\s+datos|数据保护官/i,
+  },
 ];
 
-const DPO_CONTACT = /encarregad[oa][^.]{0,80}?([\w.+-]+@[\w.-]+\.\w+)|\b(dpo|privacidade|protecaodedados|dataprivacy)@[\w.-]+\.\w+/i;
+/**
+ * Contato do encarregado.
+ *
+ * Vale um e-mail qualquer perto da menção ao encarregado, ou uma caixa dedicada
+ * em qualquer lugar do texto. A janela é contada em caracteres, e não "até o
+ * primeiro ponto": a frase que apresenta o encarregado quase sempre cita um
+ * artigo da lei ("art. 41"), e o ponto da abreviação cortaria a busca antes do
+ * e-mail. Exigir uma caixa com nome específico também estaria errado — a lei
+ * pede um canal, não um endereço com nome bonito.
+ */
+export const DPO_CONTACT =
+  /(encarregad[oa]|data\s+protection\s+officer|\bdpo\b|responsable\s+de\s+protecci[óo]n\s+de\s+datos|数据保护官)[\s\S]{0,300}?([\w.+-]+@[\w.-]+\.\w{2,})|\b(dpo|privacidade|privacidad|privacy|protecaodedados|dataprivacy|encarregado)@[\w.-]+\.\w{2,}/i;
 
 function hostOf(url: string): string {
   try {
@@ -104,15 +148,7 @@ const plugin: AuditPlugin = {
     const d = ctx.dom;
     const siteHost = hostOf(ctx.finalUrl);
 
-    // ---- 1. Banner de consentimento ---------------------------------------
-    const hasBanner = d.consentBanner;
-    checks.push(
-      check('consent-banner', 'Banner de consentimento presente', hasBanner ? 1 : 0, 2,
-        d.cmp ?? (hasBanner ? 'presente' : 'ausente')),
-    );
-    checks.push(check('cmp', 'Plataforma de consentimento identificada', d.cmp ? 1 : 0.5, 0.5, d.cmp ?? 'não detectada'));
-
-    // ---- 2. Rastreadores disparados antes de qualquer interação -----------
+    // ---- 1. Rastreadores disparados antes de qualquer interação -----------
     // A auditoria não clica em nada: o que carregou, carregou sem consentimento.
     const trackers = [
       ...new Set(
@@ -127,7 +163,7 @@ const plugin: AuditPlugin = {
         trackers.length === 0 ? 1 : 0, 3, `${trackers.length} rastreador(es)`),
     );
 
-    // ---- 3. Cookies definidos antes do consentimento ----------------------
+    // ---- 2. Cookies definidos antes do consentimento ----------------------
     const nonEssential = ctx.cookies.filter((c) => !ESSENTIAL_COOKIE.test(c.name));
     const trackingCookies = nonEssential
       .map((c) => ({ cookie: c, origem: TRACKING_COOKIES.find((t) => t.re.test(c.name))?.origem }))
@@ -136,6 +172,27 @@ const plugin: AuditPlugin = {
     checks.push(
       check('no-cookies-before-consent', 'Sem cookies não essenciais antes do consentimento',
         trackingCookies.length === 0 ? 1 : 0, 3, `${trackingCookies.length} cookie(s)`),
+    );
+
+    // ---- 3. Banner de consentimento ---------------------------------------
+    //
+    // O consentimento só é exigível quando há o que consentir. Um site que não
+    // carrega rastreador nem grava cookie não essencial não precisa de banner —
+    // e cobrá-lo seria pedir um obstáculo sem finalidade, contra o próprio
+    // princípio da necessidade. Por isso a verificação passa a ser dispensada
+    // nesse caso, em vez de zerada.
+    const needsConsent = trackers.length > 0 || trackingCookies.length > 0;
+    const hasBanner = d.consentBanner;
+
+    checks.push(
+      check('consent-banner', 'Banner de consentimento presente',
+        !needsConsent || hasBanner ? 1 : 0, 2,
+        !needsConsent ? 'não aplicável' : (d.cmp ?? (hasBanner ? 'presente' : 'ausente'))),
+    );
+    checks.push(
+      check('cmp', 'Plataforma de consentimento identificada',
+        !needsConsent || d.cmp ? 1 : 0.5, 0.5,
+        !needsConsent ? 'não aplicável' : (d.cmp ?? 'não detectada')),
     );
 
     // ---- 4. Validade dos cookies ------------------------------------------
@@ -270,7 +327,7 @@ const plugin: AuditPlugin = {
       );
     }
 
-    if (!hasBanner && (trackers.length > 0 || trackingCookies.length > 0)) {
+    if (!hasBanner && needsConsent) {
       issues.push(
         issue({
           id: 'lgpd-no-consent-banner',

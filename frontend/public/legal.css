@@ -1,0 +1,254 @@
+/* ---------------------------------------------------------------------------
+   Páginas legais da FAST (política de privacidade e termos de uso).
+   Folha própria, e não a do app: estas páginas são HTML estático, servidas sem
+   JavaScript, para que continuem legíveis por rastreadores e por qualquer
+   verificador que as busque diretamente.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0a0c10;
+  --bg-card: #151922;
+  --border: #232935;
+  --border-strong: #303849;
+  --text: #e8ecf3;
+  --text-muted: #98a2b3;
+  --text-dim: #828da0;
+  --accent: #4f8cff;
+
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- topo ---------- */
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 750;
+  font-size: 18px;
+  letter-spacing: -0.03em;
+}
+
+.brand img {
+  border-radius: 6px;
+}
+
+.langs {
+  display: flex;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.langs a,
+.langs span {
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.langs a:hover {
+  color: var(--text);
+  background: var(--bg-card);
+}
+
+.langs [aria-current='page'] {
+  color: var(--accent);
+  background: rgba(79, 140, 255, 0.12);
+}
+
+/* ---------- conteúdo ---------- */
+
+main {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 40px 24px 72px;
+}
+
+article + article {
+  margin-top: 72px;
+  padding-top: 48px;
+  border-top: 1px solid var(--border);
+}
+
+h1 {
+  font-size: clamp(26px, 4vw, 34px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+}
+
+h2 {
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  margin: 40px 0 12px;
+  scroll-margin-top: 20px;
+}
+
+p {
+  margin: 0 0 16px;
+  color: var(--text-muted);
+}
+
+.meta {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+
+.lead {
+  font-size: 17px;
+  color: var(--text);
+  padding: 18px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--accent);
+  border-radius: 10px;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  color: var(--text-muted);
+}
+
+li {
+  margin-bottom: 8px;
+}
+
+strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- tabela ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  margin: 0 0 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+thead th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  padding: 14px 16px;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 14px 16px;
+  color: var(--text-muted);
+  vertical-align: top;
+}
+
+tbody tr + tr th,
+tbody tr + tr td {
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- rodapé ---------- */
+
+footer {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-size: 13.5px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 640px) {
+  main {
+    padding: 28px 18px 56px;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    display: block;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+  }
+
+  tbody tr + tr th,
+  tbody tr + tr td {
+    border-top: 0;
+  }
+
+  tbody th {
+    white-space: normal;
+    padding-bottom: 4px;
+  }
+}
