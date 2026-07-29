@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { generateReportPdf } from '../report/pdf.js';
 import type { AuditReport } from '../core/types.js';
+import { normalizeLang } from '../i18n/index.js';
 
 /** Validação leve: o relatório é gerado pela própria FAST e volta para virar PDF. */
 function looksLikeReport(body: unknown): body is AuditReport {
@@ -25,8 +26,13 @@ export async function reportRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: 'Corpo inválido: envie um relatório de auditoria da FAST.' });
       }
 
+      // O corpo do relatório já vem traduzido do cliente; o idioma aqui define
+      // os rótulos da página impressa (seções, legendas, rodapé).
+      const query = request.query as { lang?: string };
+      const lang = normalizeLang(query.lang ?? request.headers['accept-language']);
+
       try {
-        const pdf = await generateReportPdf(request.body);
+        const pdf = await generateReportPdf(request.body, lang);
         const host = (() => {
           try {
             return new URL(request.body.finalUrl).hostname;

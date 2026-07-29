@@ -396,6 +396,7 @@ const plugin: AuditPlugin = {
 
     if (ogPresent.length < ogRequired.length) {
       const missing = ogRequired.filter((k) => !d.openGraph[k]);
+      const ogTags = missing.map((m) => `<meta property="${m}" content="...">`).join(' ');
       issues.push(
         issue({
           id: 'seo-og-incomplete',
@@ -405,7 +406,9 @@ const plugin: AuditPlugin = {
           impact: 'medio',
           difficulty: 'facil',
           minutes: 15,
-          fix: `Adicione no <head>: ${missing.map((m) => `<meta property="${m}" content="...">`).join(' ')}. A og:image deve ter ao menos 1200×630 px.`,
+          // A lista sai para uma variável: o extrator de textos (i18n) lê o
+          // molde da frase, e um template aninhado o deixaria ilegível.
+          fix: `Adicione no <head>: ${ogTags}. A og:image deve ter ao menos 1200×630 px.`,
           gain: 'Cartões de compartilhamento atrativos e mais cliques vindos de redes sociais.',
           evidence: missing,
         }),

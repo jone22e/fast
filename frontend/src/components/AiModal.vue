@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, watch } from 'vue';
+import { useI18n } from '@/i18n';
 import type { AiAnalysis } from '@/types';
 
 const props = defineProps<{ ai: AiAnalysis; open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
+
+const { t } = useI18n();
 
 function onKey(e: KeyboardEvent): void {
   if (e.key === 'Escape') emit('close');
@@ -29,15 +32,15 @@ onBeforeUnmount(() => {
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="open" class="overlay" @click.self="emit('close')">
-        <div class="modal" role="dialog" aria-modal="true" aria-label="Análise por IA">
+        <div class="modal" role="dialog" aria-modal="true" :aria-label="t.ai.title">
           <!-- Cabeçalho -->
           <header class="head">
             <img class="avatar" src="/favicon.svg" alt="" width="38" height="38" />
             <div class="who">
-              <strong>Análise por IA</strong>
-              <span>Interpretação do relatório técnico</span>
+              <strong>{{ t.ai.title }}</strong>
+              <span>{{ t.ai.subtitle }}</span>
             </div>
-            <button class="close" aria-label="Fechar" @click="emit('close')">
+            <button class="close" :aria-label="t.ai.close" @click="emit('close')">
               <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
                 <path d="M4 4l10 10M14 4L4 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
               </svg>
@@ -48,7 +51,7 @@ onBeforeUnmount(() => {
             <template v-if="ai.available">
               <!-- Resumo executivo -->
               <section class="summary">
-                <span class="eyebrow">Resumo executivo</span>
+                <span class="eyebrow">{{ t.ai.executive }}</span>
                 <p>{{ ai.executiveSummary }}</p>
               </section>
 
@@ -60,7 +63,7 @@ onBeforeUnmount(() => {
                       <path d="M10 2l8 15H2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
                       <path d="M10 8v4M10 14.5v.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                     </svg>
-                    Principais problemas
+                    {{ t.ai.mainProblems }}
                   </h3>
                   <ul class="problems">
                     <li v-for="(p, i) in ai.mainProblems" :key="i">
@@ -75,7 +78,7 @@ onBeforeUnmount(() => {
                     <svg viewBox="0 0 20 20" aria-hidden="true" class="i-list">
                       <path d="M7 5h10M7 10h10M7 15h10M3 5h.01M3 10h.01M3 15h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                     </svg>
-                    Ordem de prioridade
+                    {{ t.ai.priorities }}
                   </h3>
                   <ol class="priorities">
                     <li v-for="(p, i) in ai.priorities" :key="i">
@@ -92,7 +95,7 @@ onBeforeUnmount(() => {
                   <svg viewBox="0 0 20 20" aria-hidden="true" class="i-impact">
                     <path d="M3 16h14M5 16V9M9.5 16V5M14 16v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
                   </svg>
-                  Impacto no negócio
+                  {{ t.ai.impacts }}
                 </h3>
                 <p class="prose">{{ ai.impacts }}</p>
               </section>
@@ -103,7 +106,7 @@ onBeforeUnmount(() => {
                   <svg viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M3 13l5-5 3 3 5-6M13 2h4v4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
-                  Ganhos estimados
+                  {{ t.ai.gains }}
                 </h3>
                 <p>{{ ai.estimatedGains }}</p>
               </section>
@@ -114,7 +117,7 @@ onBeforeUnmount(() => {
                   <svg viewBox="0 0 20 20" aria-hidden="true" class="i-notes">
                     <path d="M7 4L3 10l4 6M13 4l4 6-4 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
-                  Notas técnicas
+                  {{ t.ai.notes }}
                 </h3>
                 <ul class="notes">
                   <li v-for="(n, i) in ai.technicalNotes" :key="i">{{ n }}</li>
@@ -122,13 +125,13 @@ onBeforeUnmount(() => {
               </section>
 
               <p class="foot">
-                Gerado por IA a partir dos dados da auditoria. O plano de ação detalhado está na página.
+                {{ t.ai.foot }}
               </p>
             </template>
 
             <div v-else class="off">
-              <p>{{ ai.error || 'Análise por IA indisponível.' }}</p>
-              <p class="dim">A auditoria técnica foi concluída normalmente — apenas a interpretação em linguagem natural não foi gerada.</p>
+              <p>{{ ai.error || t.ai.unavailable }}</p>
+              <p class="dim">{{ t.ai.unavailableHint }}</p>
             </div>
           </div>
         </div>

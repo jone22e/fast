@@ -14,16 +14,29 @@ EnvironmentFile={{APP_DIR}}/.env
 Environment=NODE_ENV=production
 Environment=PLAYWRIGHT_BROWSERS_PATH={{BROWSERS_PATH}}
 
-ExecStart=/usr/bin/node {{APP_DIR}}/backend/dist/server.js
+# O heap do Node fica limitado: o relatório inteiro passa por memória, e sem
+# teto o processo cresce até disputar RAM com o Chromium.
+ExecStart=/usr/bin/node --max-old-space-size={{NODE_HEAP_MB}} {{APP_DIR}}/backend/dist/server.js
 
 Restart=always
 RestartSec=5
 StartLimitBurst=5
 StartLimitIntervalSec=60
 
-# O Chromium headless é o consumidor real de memória.
-MemoryMax=3G
-TasksMax=4096
+# ---- Memória ----
+# O Chromium headless é o consumidor real. Em máquina pequena (t3.micro, 1 GB)
+# o teto precisa ser MENOR que a RAM da máquina: assim o cgroup mata só este
+# serviço — que o Restart=always traz de volta em segundos — em vez de deixar o
+# kernel sem memória e o servidor inteiro travado, sem SSH.
+#   MemoryHigh: a partir daqui o kernel pressiona o serviço (swap, cache)
+#   MemoryMax:  limite absoluto; passar disso é OOM só deste serviço
+MemoryHigh={{MEMORY_HIGH}}
+MemoryMax={{MEMORY_MAX}}
+MemoryAccounting=true
+OOMPolicy=continue
+# Prioridade menor que a do sistema: sob pressão, o SSH continua respondendo.
+Nice=5
+TasksMax=512
 LimitNOFILE=65535
 
 StandardOutput=journal

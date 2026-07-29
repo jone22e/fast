@@ -19,6 +19,10 @@ server {
     listen [::]:80;
     server_name {{DOMAIN}};
 
+    # Atrás de um CDN é ESTE bloco que atende o visitante: sem isto a resposta
+    # sai com "Server: nginx/1.24.0 (Ubuntu)" e entrega versão e distribuição.
+    server_tokens off;
+
     # Desafio do Let's Encrypt precisa ficar sempre acessível em HTTP.
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -42,6 +46,9 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto {{FWD_PROTO}};
         proxy_set_header Connection "";
+        # Os cabeçalhos de segurança vêm da aplicação (backend/src/server.ts),
+        # já que o bloco HTTPS abaixo não roda quando há CDN na frente.
+        proxy_hide_header X-Powered-By;
         proxy_buffering off;
         proxy_read_timeout 600s;
         proxy_send_timeout 600s;
@@ -116,6 +123,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Connection "";
+        include /etc/nginx/snippets/fast-proxy-hide-security.conf;
 
         proxy_buffering off;
         proxy_cache off;
@@ -136,6 +144,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Connection "";
+        include /etc/nginx/snippets/fast-proxy-hide-security.conf;
 
         proxy_read_timeout 300s;
         proxy_send_timeout 300s;

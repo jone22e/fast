@@ -1,4 +1,5 @@
 import { ref, shallowRef } from 'vue';
+import { useI18n } from '@/i18n';
 import type { AuditEvent, AuditReport, ModuleStatus } from '@/types';
 
 /**
@@ -78,12 +79,18 @@ export function useAudit() {
   }
 
   function start(url: string): void {
+    const { lang, t } = useI18n();
+
     stop();
     reset();
     running.value = true;
-    message.value = 'Conectando…';
+    message.value = t.value.progress.starting;
 
-    source = new EventSource(`/api/audit/stream?url=${encodeURIComponent(url)}`);
+    // O idioma vai junto: o backend traduz o relatório e instrui a IA a
+    // responder na mesma língua da interface.
+    source = new EventSource(
+      `/api/audit/stream?url=${encodeURIComponent(url)}&lang=${lang.value}`,
+    );
 
     source.onmessage = (e: MessageEvent<string>) => {
       try {
@@ -98,7 +105,7 @@ export function useAudit() {
         stop();
         return;
       }
-      error.value = 'A conexão com o servidor foi interrompida. Tente novamente.';
+      error.value = t.value.errors.connectionLost;
       stop();
     };
   }

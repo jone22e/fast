@@ -1,0 +1,108 @@
+import type { PluginCatalog } from '../../types.js';
+
+export const performance: PluginCatalog = {
+  name: '性能',
+  description: 'Core Web Vitals、资源体积、加载策略与网络效率。',
+  checks: {
+    lcp: '最大内容绘制（LCP）',
+    cls: '累积布局偏移（CLS）',
+    inp: '交互到下一次绘制（INP）',
+    fcp: '首次内容绘制（FCP）',
+    ttfb: '首字节时间（TTFB）',
+    si: '速度指数（Speed Index）',
+    tbt: '总阻塞时间（TBT）',
+    'total-weight': '页面总体积',
+    'img-weight': '图片体积',
+    'js-weight': 'JavaScript 体积',
+    'css-weight': 'CSS 体积',
+    'font-weight': '字体体积',
+    'media-weight': '视频/媒体体积',
+    requests: '请求数量',
+    'img-sizing': '图片尺寸是否合理',
+    'img-format': '现代图片格式',
+    lazy: '首屏以下图片的懒加载',
+    preload: 'preload 的使用',
+    preconnect: 'preconnect/dns-prefetch 的使用',
+    prefetch: 'prefetch 的使用',
+    'render-blocking': '阻塞渲染的资源',
+    compression: '文本压缩',
+    brotli: '已启用 Brotli',
+    cache: '静态资源缓存',
+  },
+  issues: {
+    'perf-lcp': {
+      title: 'LCP 为 {0}，高于推荐值',
+      description:
+        '页面中最大的可见元素需要超过 2.5 秒才出现。这是 Google 评估感知速度时权重最高的指标。',
+      fix: '找出 LCP 元素（通常是主图或标题）。为其添加 preload，以正确尺寸提供 WebP/AVIF 图片，并移除排在它之前的阻塞资源。',
+      gain: '感知加载时间约缩短 {0} 秒。',
+    },
+    'perf-cls': {
+      title: '布局不稳定（CLS {0}）',
+      description: '元素在加载过程中发生位移，导致误点击和不稳定的观感。',
+      fix: '为所有图片和 iframe 声明 width 与 height，为横幅和广告预留空间，并使用 font-display: optional 或 swap 搭配度量兼容的兜底字体。',
+      gain: 'CLS 降到 0.1 以下，误点击减少。',
+    },
+    'perf-tbt': {
+      title: 'JavaScript 阻塞主线程达 {0}',
+      description: '检测到 {0} 个长任务。它们执行期间，页面对点击和滚动都没有响应。',
+      fix: '通过代码分割拆分产物，用 defer 延后非关键脚本，把重计算移到 Web Worker，并移除未使用的库。',
+      gain: '交互更快，INP 进入良好区间。',
+    },
+    'perf-ttfb': {
+      title: '服务器响应耗时 {0}',
+      description: 'TTFB 过高会拖慢其余所有环节——首个响应到达前，什么都无法开始。',
+      fix: '在服务器上启用页面缓存，使用 CDN，优化数据库查询，并检查响应前是否存在多余跳转。',
+      gain: '每个页面最多可缩短 {0} 秒。',
+    },
+    'perf-heavy-images': {
+      title: '{0} 张图片超过 300 KB',
+      description: '最大的一张为 {0}。图片过重是 LCP 偏高最常见的原因，在移动网络上尤为明显。',
+      fix: '转换为 WebP 或 AVIF，按实际显示尺寸缩放，并用 srcset 提供响应式版本。',
+      gain: '预计节省 {0}，在 4G 下约快 {1} 秒。',
+    },
+    'perf-oversized-images': {
+      title: '{0} 张图片远大于其显示区域',
+      description: '图片以高分辨率下载后再由浏览器缩小——多余的字节被白白浪费。',
+      fix: '按真实显示尺寸生成多个版本，并用 srcset 配合 sizes 为每种屏幕提供合适的版本。',
+      gain: '受影响图片的体积减少 40% 到 70%。',
+    },
+    'perf-legacy-image-format': {
+      title: '{0} 张图片仍使用 JPEG/PNG/GIF',
+      description: 'WebP 与 AVIF 能以少 25% 到 50% 的字节提供同等画质。',
+      fix: '将图片转换为 WebP（或 AVIF），并使用 <picture> 标签为旧浏览器提供兜底。',
+      gain: '图片总体积平均减少约 30%。',
+    },
+    'perf-no-lazy': {
+      title: '首屏以下的图片未使用懒加载',
+      description: '有 {0} 张位于首屏之外的图片被立即下载，与可见内容争抢带宽。',
+      fix: '为首屏之外的图片添加 loading="lazy"。切勿对 LCP 图片使用。',
+      gain: '首次加载字节更少，LCP 更快。',
+    },
+    'perf-render-blocking': {
+      title: '{0} 个资源阻塞渲染',
+      description:
+        '<head> 中有 {0} 个样式表和 {1} 个同步脚本，页面必须等它们下载并处理完毕才能显示。',
+      fix: '内联首屏关键 CSS，其余样式用 media="print" onload 加载，并为 head 中的脚本添加 defer 或 async。',
+      gain: 'FCP 与 LCP 通常可提前 0.5 到 1.5 秒。',
+    },
+    'perf-no-compression': {
+      title: '{0} 个文本资源未压缩',
+      description: '未经 Gzip/Brotli 压缩的 HTML、CSS 与 JavaScript，传输字节数是必要值的 3 到 5 倍。',
+      fix: '在 Web 服务器或 CDN 上启用 Brotli（并保留 Gzip 兜底）。nginx 中对文本 MIME 类型配置：`brotli on; gzip on;`。',
+      gain: '每次访问预计节省 {0}。',
+    },
+    'perf-weak-cache': {
+      title: '静态资源缓存时间过短或缺失',
+      description: '有 {0} 个静态文件的 Cache-Control 未设置至少一天的 max-age，导致每次访问都重新下载。',
+      fix: '为带哈希的版本化文件设置 Cache-Control: public, max-age=31536000, immutable，HTML 则使用较短的值。',
+      gain: '回访几乎可以做到瞬时加载。',
+    },
+    'perf-bundle-size': {
+      title: 'JavaScript 产物体积为 {0}',
+      description: '过大的产物必须先下载、解析并执行，页面才能进入可交互状态。',
+      fix: '启用 tree shaking，按路由拆分代码，按需加载重型组件，并用打包器的分析工具审查依赖。',
+      gain: '初始 JavaScript 通常可减少 30% 到 60%。',
+    },
+  },
+};

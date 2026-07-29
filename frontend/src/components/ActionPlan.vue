@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { useI18n } from '@/i18n';
 import type { AiAnalysis } from '@/types';
 
 defineProps<{ plan: AiAnalysis['actionPlan'] }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
   <section v-if="plan.length" class="plan-section card fade-up">
     <header>
-      <h2>Plano de ação</h2>
-      <span class="count">{{ plan.length }} etapas</span>
+      <h2>{{ t.plan.title }}</h2>
+      <span class="count">{{ plan.length }} {{ t.plan.steps }}</span>
     </header>
 
     <ol class="plan">

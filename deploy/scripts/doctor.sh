@@ -28,6 +28,33 @@ fi
 
 command -v npm >/dev/null 2>&1 && ok "npm $(npm -v)" || bad "npm não instalado"
 
+# ---- Memória ----------------------------------------------------------------
+# Uma auditoria sobe um Chromium; sem swap, o pico em uma máquina de 1 GB não
+# gera erro — congela o servidor inteiro, SSH incluído.
+if [ -r /proc/meminfo ]; then
+  mem_mb=$(awk '/MemTotal/ {printf "%d", $2/1024}' /proc/meminfo)
+  swap_mb=$(awk '/SwapTotal/ {printf "%d", $2/1024}' /proc/meminfo)
+
+  if [ "$mem_mb" -lt 1800 ]; then
+    warn "RAM total ${mem_mb} MB — máquina pequena: o modo de baixa memória do Chromium é ativado automaticamente"
+  else
+    ok "RAM total ${mem_mb} MB"
+  fi
+
+  if [ "$swap_mb" -ge 1024 ]; then
+    ok "Swap ativo (${swap_mb} MB)"
+  elif [ "$swap_mb" -gt 0 ]; then
+    warn "Swap de apenas ${swap_mb} MB — recomendado 2 GB: sudo make swap"
+  else
+    bad "Sem swap — em 1 GB de RAM o servidor pode travar por completo. Rode: sudo make swap"
+  fi
+
+  conc="$(grep -E '^FAST_MAX_CONCURRENCY=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d ' ')"
+  if [ "$mem_mb" -lt 1800 ] && [ -n "$conc" ] && [ "$conc" -gt 1 ] 2>/dev/null; then
+    warn "FAST_MAX_CONCURRENCY=${conc} com ${mem_mb} MB de RAM — use 1 nesta máquina"
+  fi
+fi
+
 # ---- Arquivos ---------------------------------------------------------------
 [ -f .env ] && ok ".env presente" || warn ".env ausente — rode: make env"
 [ -d backend/dist ] && ok "Backend compilado" || warn "Backend não compilado — rode: make build"

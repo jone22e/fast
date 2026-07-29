@@ -1,10 +1,19 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from '@/i18n';
 import type { Issue } from '@/types';
-import { PRIORITY_LABEL, SEVERITY_COLOR, SEVERITY_LABEL, formatDuration } from '@/utils';
+import {
+  SEVERITY_COLOR,
+  difficultyLabel,
+  formatDuration,
+  impactLabel,
+  priorityLabel,
+  severityLabel,
+} from '@/utils';
 
 defineProps<{ issue: Issue; categoryLabel: string }>();
 
+const { t } = useI18n();
 const open = ref(false);
 </script>
 
@@ -18,9 +27,9 @@ const open = ref(false);
         <span class="tags">
           <span class="tag">{{ categoryLabel }}</span>
           <span class="tag" :style="{ color: SEVERITY_COLOR[issue.severity] }">
-            {{ SEVERITY_LABEL[issue.severity] }}
+            {{ severityLabel(issue.severity) }}
           </span>
-          <span class="tag">{{ PRIORITY_LABEL[issue.priority] }}</span>
+          <span class="tag">{{ priorityLabel(issue.priority) }}</span>
           <span class="tag">{{ formatDuration(issue.estimatedMinutes) }}</span>
         </span>
       </span>
@@ -35,25 +44,25 @@ const open = ref(false);
 
       <dl>
         <div>
-          <dt>Como corrigir</dt>
+          <dt>{{ t.issue.howToFix }}</dt>
           <dd>{{ issue.howToFix }}</dd>
         </div>
         <div>
-          <dt>Ganho esperado</dt>
+          <dt>{{ t.issue.expectedGain }}</dt>
           <dd>{{ issue.expectedGain }}</dd>
         </div>
         <div class="meta">
-          <dt>Impacto</dt>
-          <dd>{{ issue.impact }}</dd>
-          <dt>Dificuldade</dt>
-          <dd>{{ issue.difficulty }}</dd>
-          <dt>Tempo estimado</dt>
+          <dt>{{ t.issue.impact }}</dt>
+          <dd>{{ impactLabel(issue.impact) }}</dd>
+          <dt>{{ t.issue.difficulty }}</dt>
+          <dd>{{ difficultyLabel(issue.difficulty) }}</dd>
+          <dt>{{ t.issue.estimatedTime }}</dt>
           <dd>{{ formatDuration(issue.estimatedMinutes) }}</dd>
         </div>
       </dl>
 
       <details v-if="issue.evidence?.length" class="evidence">
-        <summary>Evidências ({{ issue.evidence.length }})</summary>
+        <summary>{{ t.issue.evidence }} ({{ issue.evidence.length }})</summary>
         <ul>
           <li v-for="(e, i) in issue.evidence" :key="i" class="mono">{{ e }}</li>
         </ul>

@@ -2,14 +2,32 @@
 import { computed, ref } from 'vue';
 import ActionPlan from './ActionPlan.vue';
 import AiModal from './AiModal.vue';
+import Icon from './Icon.vue';
 import IssueCard from './IssueCard.vue';
 import ModuleDetail from './ModuleDetail.vue';
 import ScoreRing from './ScoreRing.vue';
+import { useI18n } from '@/i18n';
 import type { AuditReport, CategoryId, Severity } from '@/types';
 import { formatDuration, formatMs, scoreColor, scoreLabel } from '@/utils';
 
 const props = defineProps<{ report: AuditReport }>();
 const emit = defineEmits<{ 'new-audit': [] }>();
+
+const { t, lang } = useI18n();
+
+/** Ícone de cada categoria, para dar leitura visual às notas. */
+const CATEGORY_ICONS: Record<CategoryId, string> = {
+  performance: 'performance',
+  seo: 'seo',
+  geo: 'geo',
+  content: 'content',
+  security: 'security',
+  protection: 'protection',
+  accessibility: 'accessibility',
+  infrastructure: 'infrastructure',
+  mobile: 'mobile',
+  ux: 'ux',
+};
 
 const pdfLoading = ref(false);
 const pdfError = ref(false);
@@ -53,24 +71,11 @@ function exportJson(): void {
   // interpretá-lo. Assim o usuário pode exportar e colar em um chat de IA.
   const r = props.report;
   const payload = {
-    _formato: 'Relatório de auditoria web FAST',
+    _formato: t.value.jsonExport.format,
     _versao: 1,
-    _instrucoes:
-      'Este é o relatório completo de uma auditoria automatizada do site abaixo. ' +
-      'Cada módulo tem nota de 0 a 100, verificações (checks) com o valor medido, e problemas ' +
-      '(issues) com gravidade, impacto, dificuldade, tempo estimado de correção, como corrigir ' +
-      '(howToFix), ganho esperado (expectedGain) e evidências. O campo "ai" traz uma análise em ' +
-      'linguagem natural. Use estes dados para explicar os problemas, priorizar e detalhar as ' +
-      'correções. Não invente métricas que não estejam aqui.',
-    _glossario: {
-      overallScore: 'Nota geral de 0 a 100.',
-      categories: 'Nota, peso e nº de problemas por categoria.',
-      plugins: 'Cada módulo de auditoria: checks (verificações), issues (problemas) e evidence (evidências brutas).',
-      issues: 'Lista consolidada de problemas, ordenada por prioridade.',
-      ai: 'Interpretação por IA: resumo, prioridades, impactos, ganhos e plano de ação.',
-      checklist: 'Itens de correção derivados dos problemas.',
-      summary: 'Contagem de problemas por gravidade e tempo total estimado.',
-    },
+    _instrucoes: t.value.jsonExport.instructions,
+    _glossario: t.value.jsonExport.glossary,
+    _idioma: lang.value,
     ...r,
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -87,7 +92,7 @@ async function exportPdf(): Promise<void> {
   pdfLoading.value = true;
   pdfError.value = false;
   try {
-    const res = await fetch('/api/report/pdf', {
+    const res = await fetch(`/api/report/pdf?lang=${lang.value}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(props.report),
@@ -112,21 +117,21 @@ async function exportPdf(): Promise<void> {
   <div class="report fade-up">
     <!-- ---------- Barra de ações ---------- -->
     <div class="toolbar">
-      <button class="back" @click="emit('new-audit')">← Analisar outro site</button>
+      <button class="back" @click="emit('new-audit')">{{ t.report.back }}</button>
       <button
         v-if="report.ai.available"
         class="ai-btn"
         @click="aiOpen = true"
       >
         <img src="/favicon.svg" alt="" width="22" height="22" />
-        Análise IA
+        {{ t.report.aiButton }}
       </button>
     </div>
 
     <!-- ---------- Cabeçalho com nota geral ---------- -->
     <section class="hero card">
       <div class="ring-wrap">
-        <ScoreRing :score="report.overallScore" :size="168" label="Nota geral" />
+        <ScoreRing :score="report.overallScore" :size="168" :label="t.report.overall" />
         <span class="verdict" :style="{ color: scoreColor(report.overallScore) }">
           {{ scoreLabel(report.overallScore) }}
         </span>
@@ -135,30 +140,30 @@ async function exportPdf(): Promise<void> {
       <div class="meta">
         <h2>{{ report.finalUrl }}</h2>
         <p class="muted">
-          Analisado em {{ new Date(report.generatedAt).toLocaleString('pt-BR') }} ·
-          {{ formatMs(report.durationMs) }} de execução
+          {{ t.report.analyzedAt }} {{ new Date(report.generatedAt).toLocaleString(lang) }} ·
+          {{ formatMs(report.durationMs) }} {{ t.report.runtime }}
         </p>
 
         <div class="stats">
           <div>
             <strong>{{ report.summary.totalIssues }}</strong>
-            <span>problemas</span>
+            <span>{{ t.report.stats.issues }}</span>
           </div>
           <div>
             <strong style="color: var(--critical)">{{ report.summary.critical }}</strong>
-            <span>críticos</span>
+            <span>{{ t.report.stats.critical }}</span>
           </div>
           <div>
             <strong style="color: var(--high)">{{ report.summary.high }}</strong>
-            <span>altos</span>
+            <span>{{ t.report.stats.high }}</span>
           </div>
           <div v-if="aiScore !== null">
             <strong :style="{ color: scoreColor(aiScore) }">{{ aiScore }}</strong>
-            <span>IA Score</span>
+            <span>{{ t.report.stats.aiScore }}</span>
           </div>
           <div>
             <strong>{{ formatDuration(report.summary.estimatedMinutes) }}</strong>
-            <span>de correção</span>
+            <span>{{ t.report.stats.fixTime }}</span>
           </div>
         </div>
 
@@ -167,11 +172,14 @@ async function exportPdf(): Promise<void> {
             <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
               <path d="M7.5 1v8m0 0L4.5 6m3 3l3-3M2.5 11v2h10v-2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            {{ pdfLoading ? 'Gerando PDF…' : 'Exportar PDF' }}
+            {{ pdfLoading ? t.report.exportingPdf : t.report.exportPdf }}
           </button>
-          <button class="export" @click="exportJson">Exportar JSON</button>
+          <button class="export" @click="exportJson">
+            <Icon name="download" :size="15" />
+            {{ t.report.exportJson }}
+          </button>
         </div>
-        <p v-if="pdfError" class="pdf-error">Não foi possível gerar o PDF. Tente novamente.</p>
+        <p v-if="pdfError" class="pdf-error">{{ t.report.pdfError }}</p>
       </div>
     </section>
 
@@ -184,14 +192,17 @@ async function exportPdf(): Promise<void> {
         :style="{ '--cat-color': scoreColor(c.score) }"
       >
         <div class="cat-head">
-          <span class="cat-name">{{ c.label }}</span>
+          <span class="cat-name">
+            <Icon :name="CATEGORY_ICONS[c.category]" :size="15" />
+            {{ c.label }}
+          </span>
           <span class="cat-score">{{ c.score }}</span>
         </div>
         <div class="cat-bar">
           <span :style="{ width: `${c.score}%` }"></span>
         </div>
         <span class="cat-issues">
-          {{ c.issueCount === 0 ? 'Sem problemas' : `${c.issueCount} problema(s)` }}
+          {{ c.issueCount === 0 ? t.report.noIssues : `${c.issueCount} ${t.report.issuesCount}` }}
         </span>
       </article>
     </section>
@@ -200,11 +211,11 @@ async function exportPdf(): Promise<void> {
     <section v-if="report.ai.available" class="ai-trigger card fade-up" @click="aiOpen = true">
       <img class="ai-icon" src="/favicon.svg" alt="" width="40" height="40" />
       <div class="ai-text">
-        <span class="ai-badge">Análise por IA</span>
+        <span class="ai-badge">{{ t.ai.badge }}</span>
         <p>{{ report.ai.executiveSummary }}</p>
       </div>
       <button class="ai-open" @click.stop="aiOpen = true">
-        Abrir análise
+        {{ t.ai.open }}
         <svg width="15" height="15" viewBox="0 0 15 15" aria-hidden="true">
           <path d="M5 3l5 4.5L5 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
@@ -221,30 +232,28 @@ async function exportPdf(): Promise<void> {
     <!-- ---------- Problemas encontrados ---------- -->
     <section class="issues card">
       <header>
-        <h2>Problemas encontrados</h2>
+        <h2><Icon name="alert" :size="19" /> {{ t.report.issuesTitle }}</h2>
         <div class="filters">
-          <label class="sr-only" for="f-cat">Filtrar por categoria</label>
+          <label class="sr-only" for="f-cat">{{ t.report.filterCategory }}</label>
           <select id="f-cat" v-model="filterCategory">
-            <option value="all">Todas as categorias</option>
+            <option value="all">{{ t.report.allCategories }}</option>
             <option v-for="c in report.categories" :key="c.category" :value="c.category">
               {{ c.label }} ({{ c.issueCount }})
             </option>
           </select>
 
-          <label class="sr-only" for="f-sev">Filtrar por gravidade</label>
+          <label class="sr-only" for="f-sev">{{ t.report.filterSeverity }}</label>
           <select id="f-sev" v-model="filterSeverity">
-            <option value="all">Todas as gravidades</option>
-            <option value="critical">Crítico</option>
-            <option value="high">Alto</option>
-            <option value="medium">Médio</option>
-            <option value="low">Baixo</option>
+            <option value="all">{{ t.report.allSeverities }}</option>
+            <option value="critical">{{ t.labels.severity.critical }}</option>
+            <option value="high">{{ t.labels.severity.high }}</option>
+            <option value="medium">{{ t.labels.severity.medium }}</option>
+            <option value="low">{{ t.labels.severity.low }}</option>
           </select>
         </div>
       </header>
 
-      <p v-if="filteredIssues.length === 0" class="empty">
-        Nenhum problema com os filtros selecionados.
-      </p>
+      <p v-if="filteredIssues.length === 0" class="empty">{{ t.report.emptyFiltered }}</p>
 
       <ul v-else class="issue-list">
         <IssueCard
@@ -258,8 +267,8 @@ async function exportPdf(): Promise<void> {
 
     <!-- ---------- Detalhamento por módulo ---------- -->
     <section class="modules card">
-      <h2>Detalhamento por módulo</h2>
-      <p class="muted">Todas as verificações executadas, com o valor medido em cada uma.</p>
+      <h2><Icon name="layers" :size="19" /> {{ t.report.modulesTitle }}</h2>
+      <p class="muted">{{ t.report.modulesIntro }}</p>
       <div class="module-list">
         <ModuleDetail v-for="p in report.plugins" :key="p.id" :plugin="p" />
       </div>
@@ -267,17 +276,18 @@ async function exportPdf(): Promise<void> {
 
     <!-- ---------- Checklist ---------- -->
     <section v-if="report.checklist.length" class="checklist card">
-      <h2>Checklist de correções</h2>
+      <h2><Icon name="check" :size="19" /> {{ t.report.checklistTitle }}</h2>
       <p class="muted">
-        {{ checked.size }} de {{ report.checklist.length }} concluído(s) — o progresso é local e
-        não é salvo em servidor.
+        {{ checked.size }}/{{ report.checklist.length }} {{ t.report.checklistProgress }}
       </p>
       <ul>
         <li v-for="item in report.checklist" :key="item.id">
           <label>
             <input type="checkbox" :checked="checked.has(item.id)" @change="toggle(item.id)" />
             <span :class="{ done: checked.has(item.id) }">{{ item.title }}</span>
-            <span class="prio" :data-p="item.priority">{{ item.priority }}</span>
+            <span class="prio" :data-p="item.priority">
+              {{ t.labels.priority[item.priority] }}
+            </span>
           </label>
         </li>
       </ul>
@@ -372,6 +382,14 @@ async function exportPdf(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  /* Em um relatório longo, voltar e abrir a análise por IA precisam continuar
+     ao alcance — a barra acompanha a rolagem logo abaixo do cabeçalho. */
+  position: sticky;
+  top: 62px;
+  z-index: 5;
+  padding: 10px 0;
+  margin-bottom: -6px;
+  background: linear-gradient(var(--bg) 70%, transparent);
 }
 
 .back {
@@ -527,8 +545,17 @@ async function exportPdf(): Promise<void> {
 
 .categories {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
   gap: 12px;
+}
+
+.cat {
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.cat:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
 }
 
 .cat {
@@ -543,8 +570,16 @@ async function exportPdf(): Promise<void> {
 }
 
 .cat-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 13.5px;
   font-weight: 600;
+}
+
+.cat-name svg {
+  color: var(--cat-color);
+  opacity: 0.85;
 }
 
 .cat-score {
@@ -589,7 +624,16 @@ async function exportPdf(): Promise<void> {
 .issues h2,
 .modules h2,
 .checklist h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-size: 19px;
+}
+
+.issues h2 svg,
+.modules h2 svg,
+.checklist h2 svg {
+  color: var(--accent);
 }
 
 .filters {

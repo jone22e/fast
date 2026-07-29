@@ -10,13 +10,16 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 .PHONY: help install update cdn cf-invalidate build deps env ssl nginx service \
-        start stop restart status logs dev clean uninstall check doctor
+        swap start stop restart status logs dev clean uninstall check doctor
 
 # ---- Configuração ------------------------------------------------------------
 APP_NAME    := fast
 APP_DIR     := $(shell pwd)
 SERVICE     := $(APP_NAME).service
 NODE_MAJOR  := 22
+# Swap padrão. Em máquina de 1 GB (t3.micro) é o que evita o congelamento total
+# quando o Chromium encosta no limite de memória.
+SWAP_GB     := 2
 
 # Lê o .env quando existir, para que DOMAIN/EMAIL sigam a configuração real.
 ifneq (,$(wildcard $(APP_DIR)/.env))
@@ -58,6 +61,7 @@ help:
 	@printf "    make logs        Acompanha os logs em tempo real\n"
 	@printf "    make ssl         Emite ou renova o certificado TLS\n"
 	@printf "    make nginx       Reaplica a configuração do nginx\n"
+	@printf "    sudo make swap   Cria o arquivo de swap ($(SWAP_GB) GB) — essencial em máquina de 1 GB\n"
 	@printf "    make doctor      Diagnóstico do ambiente\n"
 	@printf "    make clean       Remove artefatos de build e node_modules\n"
 	@printf "    sudo make uninstall  Remove serviço e configuração do nginx\n\n"
@@ -66,7 +70,7 @@ help:
 # =============================================================================
 #  INSTALAÇÃO
 # =============================================================================
-install: check env deps build nginx service ssl start
+install: check swap env deps build nginx service ssl start
 	@printf "\n$(GREEN)══════════════════════════════════════════════════════════$(NC)\n"
 	@printf "$(GREEN) FAST instalado com sucesso$(NC)\n"
 	@printf "$(GREEN)══════════════════════════════════════════════════════════$(NC)\n\n"
@@ -90,6 +94,7 @@ update: check
 	else \
 	  printf "$(YELL)Sem repositório git — pulando etapa de download.$(NC)\n"; \
 	fi
+	@$(MAKE) --no-print-directory env
 	@$(MAKE) --no-print-directory deps
 	@$(MAKE) --no-print-directory build
 	@$(MAKE) --no-print-directory nginx
@@ -118,6 +123,7 @@ cdn: check
 	  git fetch --all --quiet && git pull --ff-only || \
 	    { printf "$(RED)Falha no git pull.$(NC)\n"; exit 1; }; \
 	fi
+	@$(MAKE) --no-print-directory env
 	@$(MAKE) --no-print-directory deps
 	@$(MAKE) --no-print-directory build
 	@$(MAKE) --no-print-directory nginx
@@ -158,12 +164,8 @@ check:
 	fi
 
 env:
-	@if [ ! -f .env ]; then \
-	  cp .env.example .env; \
-	  printf "$(GREEN) ✓$(NC) .env criado a partir de .env.example — revise antes de usar em produção\n"; \
-	else \
-	  printf "$(GREEN) ✓$(NC) .env já existe (mantido)\n"; \
-	fi
+	$(call step,"Conferindo o .env")
+	@bash deploy/scripts/env.sh "$(APP_DIR)"
 
 deps:
 	$(call step,"Instalando dependências de sistema")
@@ -192,6 +194,11 @@ service:
 	$(call step,"Instalando serviço systemd")
 	@bash deploy/scripts/service.sh "$(APP_DIR)" "$(SERVICE)"
 	$(call ok,"Serviço instalado")
+
+swap:
+	$(call step,"Configurando arquivo de swap ($(SWAP_GB) GB)")
+	@bash deploy/scripts/swap.sh "$(SWAP_GB)"
+	$(call ok,"Swap configurado")
 
 ssl:
 	$(call step,"Emitindo certificado TLS para $(DOMAIN)")

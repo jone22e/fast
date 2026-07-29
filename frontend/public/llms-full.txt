@@ -1,6 +1,6 @@
 # FAST — Plataforma de auditoria web
 
-> FAST analisa qualquer website sob demanda e gera um relatório técnico e visual sobre dez dimensões de qualidade, com um plano de ação priorizado e interpretado por inteligência artificial. Não exige cadastro, não usa banco de dados e não armazena resultados: a análise existe apenas durante a execução e é descartada ao final.
+> FAST analisa qualquer website sob demanda, em quatro idiomas (português, inglês, espanhol e chinês simplificado), e gera um relatório técnico e visual sobre dez dimensões de qualidade, com um plano de ação priorizado e interpretado por inteligência artificial. Não exige cadastro, não usa banco de dados e não armazena resultados: a análise existe apenas durante a execução e é descartada ao final.
 
 ## Como funciona
 

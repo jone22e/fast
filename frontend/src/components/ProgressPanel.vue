@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '@/i18n';
 import type { ModuleStatus } from '@/types';
 import { scoreColor } from '@/utils';
 
@@ -7,6 +8,8 @@ defineProps<{
   message: string;
   modules: ModuleStatus[];
 }>();
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -14,8 +17,8 @@ defineProps<{
     <div class="head">
       <div class="spinner" aria-hidden="true"></div>
       <div>
-        <h2>Auditoria em andamento</h2>
-        <p class="muted">{{ message || 'Iniciando…' }}</p>
+        <h2>{{ t.progress.title }}</h2>
+        <p class="muted">{{ message || t.progress.starting }}</p>
       </div>
       <span class="pct">{{ Math.round(percent) }}%</span>
     </div>
@@ -31,9 +34,9 @@ defineProps<{
         <span v-if="m.state === 'done'" class="score" :style="{ color: scoreColor(m.score ?? 0) }">
           {{ m.score }}
         </span>
-        <span v-else-if="m.state === 'error'" class="err">falhou</span>
-        <span v-else-if="m.state === 'running'" class="running">analisando…</span>
-        <span v-else class="dim">na fila</span>
+        <span v-else-if="m.state === 'error'" class="err">{{ t.progress.failed }}</span>
+        <span v-else-if="m.state === 'running'" class="running">{{ t.progress.running }}</span>
+        <span v-else class="dim">{{ t.progress.queued }}</span>
       </li>
     </ul>
   </section>

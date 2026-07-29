@@ -23,6 +23,11 @@ mkdir -p /var/www/certbot /etc/nginx/sites-available /etc/nginx/sites-enabled /e
 install -m 0644 "${APP_DIR}/deploy/nginx/security-headers.conf" \
   /etc/nginx/snippets/fast-security-headers.conf
 
+# Snippet que descarta os cabeçalhos de segurança vindos do backend nas rotas
+# com proxy_pass — sem ele a resposta sairia com CSP e HSTS duplicados.
+install -m 0644 "${APP_DIR}/deploy/nginx/proxy-hide-security.conf" \
+  /etc/nginx/snippets/fast-proxy-hide-security.conf
+
 # Antes do certificado existir, servimos apenas HTTP (o certbot precisa da
 # porta 80 para o desafio). Depois da emissão, habilitamos o bloco TLS.
 if [ -f "${CERT_DIR}/fullchain.pem" ]; then

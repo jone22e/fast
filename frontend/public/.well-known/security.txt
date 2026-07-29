@@ -1,0 +1,12 @@
+# FAST — política de divulgação de vulnerabilidades (RFC 9116)
+# https://fast.openflexi.com/.well-known/security.txt
+
+Contact: mailto:security@openflexi.com
+Expires: 2027-07-29T00:00:00.000Z
+Preferred-Languages: pt-BR, en
+Canonical: https://fast.openflexi.com/.well-known/security.txt
+
+# Encontrou uma falha? Descreva o passo a passo para reproduzi-la e aguarde
+# nosso retorno antes de qualquer divulgação pública. Não execute testes que
+# degradem o serviço para outros usuários (negação de serviço, força bruta ou
+# varredura em volume).

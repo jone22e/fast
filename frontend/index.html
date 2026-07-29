@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <title>FAST — Auditoria completa de sites: performance, SEO, GEO e IA</title>
+    <!-- Entre 70 e 165 caracteres: acima disso o buscador corta o trecho. -->
     <meta
       name="description"
-      content="Analise qualquer site em segundos: Core Web Vitals, SEO técnico, GEO (otimização para ChatGPT, Claude, Gemini e Perplexity), acessibilidade, segurança e infraestrutura — com plano de ação gerado por IA."
+      content="Audite qualquer site em segundos: performance, SEO, GEO para IAs, acessibilidade e segurança, com plano de ação priorizado. Sem cadastro."
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
@@ -109,8 +110,67 @@
                 "name": "A FAST realiza testes de invasão?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Não. A avaliação de segurança e proteção é estritamente passiva: analisa apenas o que o site já devolve, sem enviar nenhum payload de ataque."
+                  "text": "Não. A avaliação de segurança e proteção é estritamente passiva: analisa apenas o que o site já devolve ao ser visitado, sem enviar nenhum payload de ataque. É seguro apontá-la para um site em produção."
                 }
+              },
+              {
+                "@type": "Question",
+                "name": "Quanto tempo leva uma auditoria?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Entre 30 e 60 segundos na maioria dos sites. O carregamento da página em navegador real é a etapa mais demorada; os dez módulos rodam em paralelo sobre a mesma coleta, e a interpretação por IA acontece ao final."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Preciso instalar algo ou mexer no código do site?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Não. A análise é externa e enxerga o site como qualquer visitante: basta a URL pública. Nenhum script, tag ou permissão precisa ser adicionado ao site analisado."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Posso analisar um site em homologação ou atrás de senha?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Só se a URL for acessível publicamente. Ambientes protegidos por login, VPN ou lista de IPs não são alcançados pela análise, porque a coleta parte de fora, sem credenciais."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Como uso o relatório dentro de uma IA?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Exporte em JSON: o arquivo já sai com um cabeçalho de instruções e um glossário dos campos. Cole esse arquivo em um chat de IA e peça o detalhamento das correções."
+                }
+              }
+            ]
+          },
+          {
+            "@type": "DefinedTermSet",
+            "@id": "https://fast.openflexi.com/#glossario",
+            "name": "Glossário da auditoria FAST",
+            "hasDefinedTerm": [
+              {
+                "@type": "DefinedTerm",
+                "name": "GEO (Generative Engine Optimization)",
+                "description": "Otimização de um site para mecanismos generativos como ChatGPT, Claude, Gemini e Perplexity: enquanto o SEO disputa posição na lista de resultados, o GEO disputa ser a fonte citada dentro da resposta."
+              },
+              {
+                "@type": "DefinedTerm",
+                "name": "llms.txt",
+                "description": "Arquivo em Markdown publicado na raiz do domínio que apresenta o site aos modelos de linguagem: o que ele é, quais páginas importam e como interpretá-las."
+              },
+              {
+                "@type": "DefinedTerm",
+                "name": "Core Web Vitals",
+                "description": "Métricas com que o Google mede a experiência real de carregamento: LCP, CLS e INP."
+              },
+              {
+                "@type": "DefinedTerm",
+                "name": "Content-Security-Policy",
+                "description": "Cabeçalho HTTP que declara de quais origens a página pode carregar scripts, estilos e imagens; principal defesa contra XSS."
               }
             ]
           }

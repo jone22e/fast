@@ -1,45 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import Icon from './components/Icon.vue';
+import Landing from './components/Landing.vue';
+import LangSwitch from './components/LangSwitch.vue';
 import ProgressPanel from './components/ProgressPanel.vue';
 import ReportView from './components/ReportView.vue';
 import { useAudit } from '@/composables/useAudit';
+import { useI18n } from '@/i18n';
 
 const url = ref('');
 const audit = useAudit();
+const { t } = useI18n();
 
 const EXAMPLES = ['vuejs.org', 'wikipedia.org', 'github.com'];
 
-const DIMENSIONS = [
-  { name: 'Performance', desc: 'Core Web Vitals, peso de recursos e estratégia de carregamento.' },
-  { name: 'SEO', desc: 'Title, meta tags, headings, links, sitemap, robots e cartões sociais.' },
-  { name: 'GEO', desc: 'llms.txt, permissões de rastreadores de IA, semântica e Schema.org.' },
-  { name: 'Conteúdo', desc: 'Clareza, profundidade, legibilidade e escaneabilidade.' },
-  { name: 'Acessibilidade', desc: 'Contraste, alt, rótulos, teclado e marcos semânticos.' },
-  { name: 'Segurança', desc: 'HTTPS, certificado, cabeçalhos, cookies e conteúdo misto.' },
-  { name: 'Proteção', desc: 'WAF, exposição de IP, chaves e senhas e sinais de SQL injection.' },
-  { name: 'Infraestrutura', desc: 'HTTP/2 e 3, compressão, cache, CDN, DNS e IPv6.' },
-  { name: 'Mobile', desc: 'Viewport, responsividade, fontes e alvos de toque.' },
-  { name: 'UX', desc: 'Navegação, hierarquia visual, CTAs e formulários.' },
-];
-
-const FAQ = [
-  {
-    q: 'A FAST substitui o Google PageSpeed?',
-    a: 'A FAST cobre performance como o PageSpeed e vai além: avalia SEO técnico, GEO (otimização para IA), acessibilidade, segurança, proteção contra ataques e UX, explicando cada problema com prioridade, tempo estimado e ganho esperado.',
-  },
-  {
-    q: 'A FAST guarda os resultados das auditorias?',
-    a: 'Não. Não há cadastro nem banco de dados. O relatório existe apenas durante a execução e é descartado ao final.',
-  },
-  {
-    q: 'O que é o módulo GEO?',
-    a: 'GEO é a otimização para mecanismos de IA como ChatGPT, Claude, Gemini e Perplexity. A FAST valida llms.txt, permissões de rastreadores de IA, dados estruturados e sinais de autoridade.',
-  },
-  {
-    q: 'A FAST realiza testes de invasão?',
-    a: 'Não. A avaliação de segurança e proteção é estritamente passiva: analisa apenas o que o site já devolve, sem enviar nenhum payload de ataque.',
-  },
-];
+/** A página inicial só aparece enquanto não há auditoria em curso nem relatório. */
+const showLanding = computed(() => !audit.report.value && !audit.running.value);
 
 function submit(): void {
   const value = url.value.trim();
@@ -66,124 +42,144 @@ function newAudit(): void {
         <a class="brand" href="/">
           <img class="mark" src="/favicon.svg" alt="" width="26" height="26" />
           <span class="name">FAST</span>
+          <span class="tagline">{{ t.nav.tagline }}</span>
         </a>
-        <span class="tagline">Auditoria web completa — performance, SEO, GEO e IA</span>
+
+        <nav v-if="showLanding" class="top-nav" aria-label="FAST">
+          <a v-for="s in t.nav.sections" :key="s.id" :href="`#${s.id}`">{{ s.label }}</a>
+        </nav>
+
+        <div class="top-actions">
+          <LangSwitch />
+          <a v-if="showLanding" class="top-cta" href="#analise">
+            <Icon name="bolt" :size="15" />
+            {{ t.nav.cta }}
+          </a>
+        </div>
       </div>
     </header>
 
-    <main class="container">
-      <!-- ---------- Formulário ---------- -->
-      <section v-if="!audit.report.value" class="intro" :class="{ compact: audit.running.value }">
-        <h1>
-          Descubra o que está travando o seu site —
-          <em>inclusive para as IAs</em>
-        </h1>
-        <p class="lead">
-          Uma análise completa em segundos: Core Web Vitals, SEO técnico, acessibilidade, segurança,
-          infraestrutura e GEO — a otimização para ChatGPT, Claude, Gemini e Perplexity que o
-          PageSpeed não cobre.
-        </p>
+    <main>
+      <!-- ---------- Foco da página: a análise ---------- -->
+      <section
+        v-if="!audit.report.value"
+        id="analise"
+        class="hero"
+        :class="{ working: audit.running.value }"
+      >
+        <div class="container hero-inner">
+          <span class="badge">
+            <Icon name="ai" :size="14" />
+            {{ t.hero.badge }}
+          </span>
 
-        <form class="form" @submit.prevent="submit">
-          <label class="sr-only" for="url">Endereço do site</label>
-          <input
-            id="url"
-            v-model="url"
-            type="text"
-            inputmode="url"
-            autocomplete="url"
-            placeholder="https://seusite.com.br"
-            :disabled="audit.running.value"
-            spellcheck="false"
-          />
-          <button type="submit" :disabled="audit.running.value || !url.trim()">
-            {{ audit.running.value ? 'Analisando…' : 'Analisar' }}
-          </button>
-        </form>
+          <h1>
+            {{ t.hero.titleLead }}
+            <em>{{ t.hero.titleAccent }}</em>
+          </h1>
 
-        <nav class="examples" aria-label="Sites de exemplo">
-          <span>Experimente:</span>
-          <button
-            v-for="e in EXAMPLES"
-            :key="e"
-            class="example"
-            :disabled="audit.running.value"
-            @click="useExample(e)"
-          >
-            {{ e }}
-          </button>
-        </nav>
-      </section>
+          <p class="lead">{{ t.hero.lead }}</p>
 
-      <!-- ---------- Conteúdo institucional (SEO/GEO) ---------- -->
-      <section v-if="!audit.report.value && !audit.running.value" class="learn" aria-labelledby="learn-title">
-        <header class="learn-head">
-          <h2 id="learn-title">O que a FAST analisa</h2>
-          <p>
-            Uma auditoria da FAST cobre dez dimensões de qualidade de um site, cada uma com uma nota
-            de 0 a 100, os problemas encontrados, a gravidade, como corrigir e o ganho esperado. A
-            análise vai além da velocidade: avalia também como o site é lido por mecanismos de
-            inteligência artificial e quão exposto ele está a ataques — dois pontos que a maioria das
-            ferramentas de auditoria ignora, mas que hoje definem visibilidade e disponibilidade.
-          </p>
-        </header>
+          <form class="form" @submit.prevent="submit">
+            <label class="sr-only" for="url">{{ t.hero.urlLabel }}</label>
+            <div class="field">
+              <Icon class="field-icon" name="link" :size="18" />
+              <input
+                id="url"
+                v-model="url"
+                type="text"
+                inputmode="url"
+                autocomplete="url"
+                :placeholder="t.hero.placeholder"
+                :disabled="audit.running.value"
+                spellcheck="false"
+              />
+            </div>
+            <button type="submit" :disabled="audit.running.value || !url.trim()">
+              <Icon v-if="!audit.running.value" name="bolt" :size="17" />
+              {{ audit.running.value ? t.hero.analyzing : t.hero.analyze }}
+            </button>
+          </form>
 
-        <ul class="dimensions">
-          <li v-for="d in DIMENSIONS" :key="d.name">
-            <strong>{{ d.name }}</strong>
-            <span>{{ d.desc }}</span>
-          </li>
-        </ul>
+          <nav class="examples" :aria-label="t.hero.tryLabel">
+            <span>{{ t.hero.tryLabel }}</span>
+            <button
+              v-for="e in EXAMPLES"
+              :key="e"
+              class="example"
+              :disabled="audit.running.value"
+              @click="useExample(e)"
+            >
+              {{ e }}
+            </button>
+          </nav>
 
-        <article class="how">
-          <h3>Como funciona</h3>
-          <ol>
-            <li>Você informa a URL de um site.</li>
-            <li>A FAST abre a página em um navegador real (desktop e mobile) e coleta métricas de performance, rede, DOM, DNS e TLS.</li>
-            <li>Dez módulos independentes analisam a coleta em paralelo e geram as notas.</li>
-            <li>Uma IA interpreta o relatório e monta o resumo, a priorização e o plano de ação.</li>
-          </ol>
-        </article>
+          <ul class="highlights">
+            <li v-for="h in t.hero.highlights" :key="h.label">
+              <Icon :name="h.icon" :size="17" />
+              <strong>{{ h.value }}</strong>
+              <span>{{ h.label }}</span>
+            </li>
+          </ul>
+        </div>
 
-        <article class="faq">
-          <h3>Perguntas frequentes</h3>
-          <details v-for="(f, i) in FAQ" :key="i">
-            <summary>{{ f.q }}</summary>
-            <p>{{ f.a }}</p>
-          </details>
-        </article>
-
-        <p class="learn-foot">
-          Cada problema encontrado vem com prioridade, tempo estimado de correção e ganho esperado,
-          para que você saiba exatamente por onde começar. Ao final, uma inteligência artificial
-          interpreta todo o relatório e monta um plano de ação em linguagem clara.
-        </p>
+        <a v-if="showLanding" class="scroll-cue" href="#modulos">
+          <span>{{ t.hero.scrollCue }}</span>
+          <Icon name="arrowDown" :size="18" />
+        </a>
       </section>
 
       <!-- ---------- Erro ---------- -->
-      <div v-if="audit.error.value" class="error card" role="alert">
-        <strong>Não foi possível concluir a auditoria</strong>
-        <p>{{ audit.error.value }}</p>
-        <button class="retry" @click="submit">Tentar novamente</button>
+      <div v-if="audit.error.value" class="container">
+        <div class="error card" role="alert">
+          <strong>{{ t.errors.auditFailed }}</strong>
+          <p>{{ audit.error.value }}</p>
+          <button class="retry" @click="submit">
+            <Icon name="refresh" :size="15" />
+            {{ t.errors.retry }}
+          </button>
+        </div>
       </div>
 
       <!-- ---------- Progresso ---------- -->
-      <ProgressPanel
-        v-if="audit.running.value"
-        :percent="audit.percent.value"
-        :message="audit.message.value"
-        :modules="audit.modules.value"
-      />
+      <div v-if="audit.running.value" class="container run-area">
+        <ProgressPanel
+          :percent="audit.percent.value"
+          :message="audit.message.value"
+          :modules="audit.modules.value"
+        />
+      </div>
 
       <!-- ---------- Relatório ---------- -->
-      <ReportView v-if="audit.report.value" :report="audit.report.value" @new-audit="newAudit" />
+      <div v-if="audit.report.value" class="container report-area">
+        <ReportView :report="audit.report.value" @new-audit="newAudit" />
+      </div>
+
+      <!-- ---------- Conteúdo institucional (aparece ao rolar) ---------- -->
+      <div v-if="showLanding" class="container">
+        <Landing />
+      </div>
     </main>
 
     <footer class="foot">
-      <div class="container">
-        <p>
-          FAST · auditoria executada sob demanda, sem autenticação e sem persistência. Nenhum
-          resultado é armazenado após o encerramento da análise.
+      <div class="container foot-inner">
+        <div class="foot-brand">
+          <img src="/favicon.svg" alt="" width="22" height="22" />
+          <div>
+            <strong>FAST</strong>
+            <p>{{ t.footer.blurb }}</p>
+          </div>
+        </div>
+
+        <nav v-if="showLanding" class="foot-nav" aria-label="FAST">
+          <a v-for="s in t.nav.sections" :key="s.id" :href="`#${s.id}`">{{ s.label }}</a>
+          <a href="#resumo">{{ t.landing.summary.eyebrow }}</a>
+        </nav>
+
+        <p class="foot-meta">
+          {{ t.footer.by }}
+          <a href="https://openflexi.com/" target="_blank" rel="noopener noreferrer">OpenFlexi</a>
+          · {{ t.footer.updated }} <time datetime="2026-07-29">2026-07-29</time>
         </p>
       </div>
     </footer>
@@ -201,18 +197,18 @@ function newAudit(): void {
 
 .top {
   border-bottom: 1px solid var(--border);
-  background: rgba(10, 12, 16, 0.7);
-  backdrop-filter: blur(12px);
+  background: rgba(10, 12, 16, 0.72);
+  backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
 .top-inner {
   display: flex;
   align-items: center;
-  gap: 16px;
-  height: 58px;
+  gap: 26px;
+  height: 62px;
 }
 
 .brand {
@@ -222,6 +218,7 @@ function newAudit(): void {
   min-height: 44px;
   text-decoration: none;
   color: var(--text);
+  flex-shrink: 0;
 }
 
 .brand:hover {
@@ -242,36 +239,118 @@ function newAudit(): void {
 }
 
 .tagline {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-dim);
+  padding-left: 11px;
+  margin-left: 2px;
+  border-left: 1px solid var(--border-strong);
 }
 
-/* ---------- intro ---------- */
+.top-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.top-nav + .top-actions {
+  margin-left: 0;
+}
+
+.top-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 11px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text-muted);
+  transition: color 0.15s, background 0.15s;
+}
+
+.top-nav a:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+  text-decoration: none;
+}
+
+.top-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--accent-btn);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 9px 15px;
+  transition: background 0.2s;
+}
+
+.top-cta:hover {
+  background: var(--accent-btn-hover);
+  text-decoration: none;
+}
+
+/* ---------- herói: a análise ---------- */
 
 main {
   flex: 1;
-  padding: 56px 24px 72px;
-  display: grid;
-  gap: 22px;
-  align-content: start;
 }
 
-.intro {
-  text-align: center;
-  max-width: 780px;
-  margin: 0 auto 12px;
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: min(760px, calc(100vh - 62px));
+  padding: clamp(48px, 8vh, 96px) 0 96px;
+  scroll-margin-top: 62px;
   transition: opacity 0.3s;
 }
 
-.intro.compact {
-  opacity: 0.4;
+.hero.working {
+  min-height: 0;
+  padding-bottom: 12px;
+  opacity: 0.45;
   pointer-events: none;
 }
 
+.hero-inner {
+  text-align: center;
+  display: grid;
+  justify-items: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 6px 14px;
+  margin-bottom: 26px;
+}
+
+.badge svg {
+  color: var(--accent);
+}
+
 h1 {
-  font-size: clamp(28px, 5vw, 44px);
-  line-height: 1.15;
-  margin-bottom: 18px;
+  font-size: clamp(31px, 5.4vw, 52px);
+  line-height: 1.12;
+  margin-bottom: 20px;
+  max-width: 15ch;
 }
 
 h1 em {
@@ -284,27 +363,44 @@ h1 em {
 
 .lead {
   font-size: 16.5px;
+  line-height: 1.7;
   color: var(--text-muted);
-  max-width: 640px;
-  margin: 0 auto 32px;
+  max-width: 62ch;
+  margin: 0 auto 34px;
 }
 
 .form {
   display: flex;
-  gap: 9px;
-  max-width: 580px;
-  margin: 0 auto 16px;
+  gap: 10px;
+  width: 100%;
+  max-width: 660px;
+  margin-bottom: 16px;
+}
+
+.field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.field-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
 }
 
 input {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   color: var(--text);
   font: inherit;
-  padding: 13px 16px;
+  font-size: 15.5px;
+  padding: 15px 16px 15px 44px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -319,10 +415,13 @@ input:focus {
 }
 
 .form button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: var(--accent-btn);
   color: #fff;
   border-radius: var(--radius-sm);
-  padding: 13px 26px;
+  padding: 15px 28px;
   font-weight: 600;
   white-space: nowrap;
   transition: background 0.2s, transform 0.1s;
@@ -344,7 +443,6 @@ input:focus {
   gap: 4px 6px;
   font-size: 13px;
   color: var(--text-dim);
-  margin-bottom: 22px;
 }
 
 .example {
@@ -363,138 +461,83 @@ input:focus {
   background: var(--bg-card);
 }
 
-/* ---------- conteúdo institucional ---------- */
-
-.learn-foot {
-  max-width: 680px;
-  margin: 0 auto;
-  text-align: center;
-  font-size: 14.5px;
-  line-height: 1.7;
-  color: var(--text-muted);
-}
-
-
-.learn {
-  max-width: 900px;
-  margin: 8px auto 0;
-  display: grid;
-  gap: 34px;
-}
-
-.learn-head {
-  text-align: center;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.learn-head h2 {
-  font-size: 24px;
-  margin-bottom: 10px;
-}
-
-.learn-head p {
-  color: var(--text-muted);
-  font-size: 15px;
-  margin: 0;
-}
-
-.dimensions {
+.highlights {
   list-style: none;
-  margin: 0;
+  margin: 40px 0 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
 }
 
-.dimensions li {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-}
-
-.dimensions strong {
-  display: block;
-  font-size: 14.5px;
-  margin-bottom: 3px;
-}
-
-.dimensions span {
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.how,
-.faq {
-  max-width: 680px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.how h3,
-.faq h3 {
-  font-size: 17px;
-  margin-bottom: 14px;
-  text-align: center;
-}
-
-.how ol {
-  margin: 0;
-  padding-left: 22px;
-  display: grid;
+.highlights li {
+  display: flex;
+  align-items: center;
   gap: 9px;
-  color: var(--text-muted);
-  font-size: 14.5px;
-  line-height: 1.55;
-}
-
-.faq details {
+  padding: 11px 18px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-card);
-  padding: 0 16px;
-  margin-bottom: 9px;
 }
 
-.faq summary {
-  cursor: pointer;
-  padding: 14px 0;
-  font-size: 14.5px;
-  font-weight: 600;
-  list-style: none;
-}
-
-.faq summary::-webkit-details-marker {
-  display: none;
-}
-
-.faq summary::before {
-  content: '+';
-  display: inline-block;
-  width: 18px;
+.highlights svg {
   color: var(--accent);
+}
+
+.highlights strong {
+  font-size: 17px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.faq details[open] summary::before {
-  content: '−';
+.highlights span {
+  font-size: 12.5px;
+  color: var(--text-dim);
 }
 
-.faq details p {
-  margin: 0 0 16px 18px;
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.6;
+.scroll-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  padding: 8px 14px;
+  border-radius: 20px;
+  transition: color 0.2s, background 0.2s;
 }
 
-/* ---------- erro ---------- */
+.scroll-cue svg {
+  animation: nudge 1.9s ease-in-out infinite;
+}
+
+.scroll-cue:hover {
+  color: var(--text);
+  background: var(--bg-card);
+  text-decoration: none;
+}
+
+@keyframes nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+/* ---------- áreas de execução ---------- */
+
+.run-area,
+.report-area {
+  padding-top: 8px;
+  padding-bottom: 72px;
+}
 
 .error {
   border-color: rgba(255, 93, 93, 0.35);
   background: rgba(255, 93, 93, 0.06);
+  margin-bottom: 22px;
 }
 
 .error strong {
@@ -509,9 +552,12 @@ input:focus {
 }
 
 .retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  padding: 7px 14px;
+  padding: 8px 14px;
   font-size: 13.5px;
   color: var(--text-muted);
 }
@@ -525,32 +571,109 @@ input:focus {
 
 .foot {
   border-top: 1px solid var(--border);
-  padding: 26px 0;
-  margin-top: auto;
+  padding: 34px 0;
+  margin-top: 96px;
+  background: rgba(18, 21, 28, 0.4);
 }
 
-.foot p {
+.foot-inner {
+  display: grid;
+  gap: 22px;
+}
+
+.foot-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 620px;
+}
+
+.foot-brand img {
+  border-radius: 6px;
+  margin-top: 2px;
+}
+
+.foot-brand strong {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.foot-brand p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.foot-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
+
+.foot-nav a {
+  font-size: 13px;
+  color: var(--text-muted);
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.foot-meta {
   margin: 0;
   font-size: 12.5px;
   color: var(--text-dim);
-  text-align: center;
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+@media (max-width: 1080px) {
+  .top-nav {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .top-cta {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
-  main {
-    padding: 36px 16px 52px;
+  .tagline {
+    display: none;
   }
 
-  .container {
-    padding: 0 16px;
+  .hero {
+    min-height: 0;
+    padding: 40px 0 72px;
   }
 
   .form {
     flex-direction: column;
   }
 
-  .tagline {
-    display: none;
+  .form button {
+    justify-content: center;
+  }
+
+  .highlights {
+    margin-top: 30px;
+  }
+
+  .highlights li {
+    flex: 1 1 calc(50% - 12px);
+  }
+
+  .scroll-cue {
+    position: static;
+    transform: none;
+    margin: 34px auto 0;
+    justify-content: center;
+  }
+
+  .foot {
+    margin-top: 64px;
   }
 }
 </style>

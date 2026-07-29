@@ -314,16 +314,50 @@ function toMetrics(raw: Record<string, number | null>): PerformanceMetrics {
  * Coleta todo o contexto de auditoria: navegação desktop + mobile,
  * rede, DOM, arquivos auxiliares, DNS e TLS.
  */
+/**
+ * Coleta tudo que os módulos precisam, em uma passagem.
+ *
+ * O cancelamento (tempo esgotado ou visitante que fechou a aba) precisa fechar
+ * as abas abertas: é isso que devolve a memória do Chromium. O `finally`
+ * cuida do caminho normal e do caminho de erro; o listener de abort cuida do
+ * caso em que ninguém mais está esperando o resultado.
+ */
 export async function collect(
   url: string,
   report: (message: string) => void,
+  signal?: AbortSignal,
+): Promise<AuditContext> {
+  const openContexts = new Set<BrowserContext>();
+  const closeAll = (): void => closeLeftovers(openContexts);
+
+  signal?.addEventListener('abort', closeAll, { once: true });
+  try {
+    return await collectPage(url, report, openContexts);
+  } finally {
+    closeAll();
+    signal?.removeEventListener('abort', closeAll);
+  }
+}
+
+async function collectPage(
+  url: string,
+  report: (message: string) => void,
+  openContexts: Set<BrowserContext>,
 ): Promise<AuditContext> {
   const startedAt = Date.now();
   const target = new URL(url);
   const origin = target.origin;
 
+  const track = <T extends { context: BrowserContext }>(nav: T): T => {
+    openContexts.add(nav.context);
+    return nav;
+  };
+  const done = (context: BrowserContext): void => {
+    openContexts.delete(context);
+  };
+
   report('Abrindo página em Chromium (desktop)…');
-  const desktopNav = await openPage(url, DESKTOP, false);
+  const desktopNav = track(await openPage(url, DESKTOP, false));
   const { page, context, response } = desktopNav;
 
   const finalUrl = page.url();
@@ -363,6 +397,7 @@ export async function collect(
   };
 
   await context.close().catch(() => undefined);
+  done(context);
 
   // ---- HTML bruto (sem execução de JS) ------------------------------------
   report('Baixando HTML bruto…');
@@ -372,12 +407,13 @@ export async function collect(
   report('Repetindo a análise em viewport mobile…');
   let mobile: ViewportSnapshot;
   try {
-    const mobileNav = await openPage(finalUrl, MOBILE, true);
+    const mobileNav = track(await openPage(finalUrl, MOBILE, true));
     await enrichResourceSizes(mobileNav.page, mobileNav.resources);
     const mobileMetricsRaw = await collectMetrics(mobileNav.page);
     const mobileViewport = await measureViewport(mobileNav.page);
     mobile = { ...MOBILE, metrics: toMetrics(mobileMetricsRaw), ...mobileViewport };
     await mobileNav.context.close().catch(() => undefined);
+    done(mobileNav.context);
   } catch {
     mobile = {
       ...MOBILE,
@@ -445,6 +481,12 @@ export async function collect(
     startedAt,
     report,
   };
+}
+
+/** Fecha o que sobrou de aberto — chamado no fim e no cancelamento. */
+function closeLeftovers(contexts: Set<BrowserContext>): void {
+  for (const context of contexts) void context.close().catch(() => undefined);
+  contexts.clear();
 }
 
 /** Descobre o protocolo HTTP negociado (h2, h3, http/1.1). */

@@ -1,5 +1,7 @@
 import { config } from '../../config.js';
 import type { AiAnalysis, AuditContext, CategoryScore, Issue } from '../../core/types.js';
+import { UI } from '../../i18n/catalog/ui.js';
+import type { Lang } from '../../i18n/types.js';
 
 /**
  * Módulo 10 — Inteligência Artificial (via Ollama self-hosted).
@@ -33,9 +35,23 @@ const OUTPUT_SPEC = `Responda APENAS com um objeto JSON válido, sem texto antes
   "technicalNotes": ["observações técnicas para a equipe de desenvolvimento"]
 }`;
 
+/**
+ * Instrução de idioma da resposta.
+ *
+ * Vai no início do system prompt e é repetida no fim do prompt do usuário: o
+ * modelo recebe o relatório inteiro em português (é a língua dos plugins) e,
+ * sem o lembrete no final, tende a responder na língua do que acabou de ler.
+ */
+const LANGUAGE_INSTRUCTION: Record<Lang, string> = {
+  pt: 'Escreva TODA a resposta em português do Brasil.',
+  en: 'Write your ENTIRE response in English, even though the audit data below is in Portuguese. Translate every term into natural English.',
+  es: 'Escribe TODA tu respuesta en español, aunque los datos de la auditoría a continuación estén en portugués. Traduce cada término a un español natural.',
+  zh: '请全程使用简体中文作答，即使下面的审计数据是葡萄牙语。请把所有术语都译成自然的中文。',
+};
+
 const SYSTEM_PROMPT = `Você é um consultor sênior de performance web, SEO, GEO (Generative Engine Optimization) e segurança.
 
-Recebe o resultado de uma auditoria técnica automatizada e produz uma avaliação em português do Brasil.
+Recebe o resultado de uma auditoria técnica automatizada e produz uma avaliação para o time responsável pelo site.
 
 Diretrizes:
 - Escreva para dois públicos: o resumo executivo e os impactos devem ser compreensíveis por alguém não técnico; o plano de ação e as notas técnicas são para desenvolvedores.
@@ -50,6 +66,7 @@ interface AnalysisInput {
   categories: CategoryScore[];
   issues: Issue[];
   overallScore: number;
+  lang: Lang;
 }
 
 /** Monta um resumo compacto da auditoria para enviar ao modelo. */
@@ -87,7 +104,7 @@ function buildPrompt(input: AnalysisInput): string {
     lines.push(`... e mais ${issues.length - 30} problema(s) de menor prioridade.`);
   }
 
-  lines.push('', OUTPUT_SPEC);
+  lines.push('', OUTPUT_SPEC, '', LANGUAGE_INSTRUCTION[input.lang]);
   return lines.join('\n');
 }
 
@@ -155,7 +172,7 @@ function extractJson(text: string): string | null {
  * resposta longa em JSON não ser truncada. NÃO usa format:"json" — instruímos
  * no prompt e extraímos o objeto, como o Flexi faz.
  */
-async function callOllama(prompt: string): Promise<string> {
+async function callOllama(prompt: string, lang: Lang): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.ai.timeout);
 
@@ -169,7 +186,7 @@ async function callOllama(prompt: string): Promise<string> {
       signal: controller.signal,
       body: JSON.stringify({
         model: config.ai.model,
-        system: SYSTEM_PROMPT,
+        system: `${LANGUAGE_INSTRUCTION[lang]}\n\n${SYSTEM_PROMPT}`,
         prompt,
         stream: false,
         think: false,
@@ -201,13 +218,11 @@ async function callOllama(prompt: string): Promise<string> {
 
 export async function runAiAnalysis(input: AnalysisInput): Promise<AiAnalysis> {
   if (!config.ai.url) {
-    return unavailable(
-      'Módulo de IA desativado: defina FAST_AI_URL no .env (endpoint /api/generate do Ollama) para habilitar a análise em linguagem natural.',
-    );
+    return unavailable(UI[input.lang].aiUnavailable);
   }
 
   try {
-    const raw = await callOllama(buildPrompt(input));
+    const raw = await callOllama(buildPrompt(input), input.lang);
     const cleaned = stripThinking(raw);
     const json = extractJson(cleaned) ?? cleaned;
 
@@ -215,7 +230,7 @@ export async function runAiAnalysis(input: AnalysisInput): Promise<AiAnalysis> {
     try {
       parsed = JSON.parse(json) as Partial<AnalysisShape>;
     } catch {
-      return unavailable('A resposta do modelo não veio em JSON válido. Verifique o modelo configurado em FAST_AI_MODEL.');
+      return unavailable(UI[input.lang].aiFailed);
     }
 
     return {
@@ -236,10 +251,9 @@ export async function runAiAnalysis(input: AnalysisInput): Promise<AiAnalysis> {
       technicalNotes: Array.isArray(parsed.technicalNotes) ? parsed.technicalNotes.map(String) : [],
     };
   } catch (error) {
+    // O detalhe técnico segue para o log; ao usuário vai a frase no idioma dele.
     const message = error instanceof Error ? error.message : String(error);
-    const hint = message.includes('aborted')
-      ? `O modelo não respondeu em ${Math.round(config.ai.timeout / 1000)}s (ajuste FAST_AI_TIMEOUT).`
-      : message;
-    return unavailable(`Falha ao gerar a análise por IA: ${hint}`);
+    console.warn(`[ai] ${message}`);
+    return unavailable(UI[input.lang].aiFailed);
   }
 }

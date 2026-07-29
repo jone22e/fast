@@ -1,5 +1,8 @@
 import { config } from '../config.js';
 import { runAiAnalysis } from '../plugins/ai/index.js';
+import { getCatalog, translateProgress, translateReport } from '../i18n/index.js';
+import type { Lang } from '../i18n/index.js';
+import { beginBrowserUse, endBrowserUse } from './browser.js';
 import { collect } from './collector.js';
 import { getPlugins } from './registry.js';
 import {
@@ -20,27 +23,56 @@ import type {
 
 type Emit = (event: AuditEvent) => void;
 
-/** Executa uma auditoria completa e emite eventos de progresso em tempo real. */
-export async function runAudit(url: string, emit: Emit): Promise<AuditReport> {
+/**
+ * Executa uma auditoria completa e emite eventos de progresso em tempo real.
+ *
+ * O idioma acompanha a execução do começo ao fim: as mensagens de progresso e
+ * os nomes dos módulos já saem traduzidos nos eventos, e o relatório final
+ * passa pelo tradutor antes de ser emitido.
+ */
+export async function runAudit(
+  url: string,
+  emit: Emit,
+  lang: Lang = 'pt',
+  signal?: AbortSignal,
+): Promise<AuditReport> {
   const startedAt = Date.now();
   const plugins = getPlugins();
+
+  const catalog = await getCatalog(lang);
+  /** Nome do módulo no idioma pedido, com o original como reserva. */
+  const nameOf = (id: string, fallback: string): string =>
+    catalog.plugins[id]?.name ?? fallback;
 
   emit({
     type: 'started',
     url,
-    plugins: plugins.map((p) => ({ id: p.id, name: p.name, category: p.category })),
+    plugins: plugins.map((p) => ({ id: p.id, name: nameOf(p.id, p.name), category: p.category })),
   });
 
   const progress = (stage: string, message: string, percent: number): void =>
-    emit({ type: 'progress', stage, message, percent });
+    emit({ type: 'progress', stage, message: translateProgress(message, lang), percent });
 
   progress('coleta', 'Validando URL e iniciando coleta…', 2);
 
-  const ctx: AuditContext = await withTimeout(
-    collect(url, (message) => progress('coleta', message, 10)),
-    config.auditTimeout,
-    'Tempo limite excedido durante a coleta da página.',
-  );
+  // A coleta é a única etapa que usa o navegador. Marcar começo e fim permite
+  // ao gerenciador reciclar ou fechar o Chromium assim que ele fica livre —
+  // o que, em máquina de 1 GB, é a diferença entre servir a próxima auditoria
+  // e travar o servidor inteiro.
+  beginBrowserUse();
+  let ctx: AuditContext;
+  try {
+    ctx = await withTimeout(
+      collect(url, (message) => progress('coleta', message, 10), signal),
+      config.auditTimeout,
+      'Tempo limite excedido durante a coleta da página.',
+      signal,
+    );
+  } finally {
+    endBrowserUse();
+  }
+
+  abortIfCancelled(signal);
 
   progress('coleta', 'Coleta concluída. Executando módulos de auditoria…', 35);
 
@@ -51,7 +83,7 @@ export async function runAudit(url: string, emit: Emit): Promise<AuditReport> {
   const results = await Promise.all(
     plugins.map(async (plugin): Promise<PluginResult> => {
       const pluginStart = Date.now();
-      emit({ type: 'plugin:start', id: plugin.id, name: plugin.name });
+      emit({ type: 'plugin:start', id: plugin.id, name: nameOf(plugin.id, plugin.name) });
 
       try {
         const partial = await withTimeout(
@@ -80,11 +112,15 @@ export async function runAudit(url: string, emit: Emit): Promise<AuditReport> {
         };
 
         done += 1;
-        progress('modulos', `${plugin.name} concluído.`, 35 + Math.round((done / total) * 45));
+        progress(
+          'modulos',
+          `${nameOf(plugin.id, plugin.name)} concluído.`,
+          35 + Math.round((done / total) * 45),
+        );
         emit({
           type: 'plugin:done',
           id: plugin.id,
-          name: plugin.name,
+          name: nameOf(plugin.id, plugin.name),
           score: result.score,
           issues: result.issues.length,
           durationMs: result.durationMs,
@@ -94,8 +130,17 @@ export async function runAudit(url: string, emit: Emit): Promise<AuditReport> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         done += 1;
-        progress('modulos', `${plugin.name} falhou.`, 35 + Math.round((done / total) * 45));
-        emit({ type: 'plugin:error', id: plugin.id, name: plugin.name, error: message });
+        progress(
+          'modulos',
+          `${nameOf(plugin.id, plugin.name)} falhou.`,
+          35 + Math.round((done / total) * 45),
+        );
+        emit({
+          type: 'plugin:error',
+          id: plugin.id,
+          name: nameOf(plugin.id, plugin.name),
+          error: message,
+        });
 
         return {
           id: plugin.id,
@@ -157,12 +202,15 @@ export async function runAudit(url: string, emit: Emit): Promise<AuditReport> {
   const score = overallScore(categories);
 
   // ---- Módulo 10: interpretação por IA ------------------------------------
+  // A IA é a etapa mais longa depois da coleta; cancelar antes dela evita
+  // gastar um minuto de modelo em um relatório que ninguém vai ler.
+  abortIfCancelled(signal);
   progress('ia', 'Gerando análise em linguagem natural…', 88);
-  const ai = await runAiAnalysis({ ctx, categories, issues, overallScore: score });
+  const ai = await runAiAnalysis({ ctx, categories, issues, overallScore: score, lang });
 
   progress('relatorio', 'Montando relatório final…', 97);
 
-  const report: AuditReport = {
+  const reportPt: AuditReport = {
     url: ctx.url,
     finalUrl: ctx.finalUrl,
     generatedAt: new Date().toISOString(),
@@ -181,22 +229,51 @@ export async function runAudit(url: string, emit: Emit): Promise<AuditReport> {
     summary,
   };
 
+  // Os plugins escrevem em português; a tradução acontece uma vez, aqui.
+  const report = await translateReport(reportPt, lang);
+
   progress('concluido', 'Auditoria concluída.', 100);
   emit({ type: 'report', report });
 
   return report;
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+/** Erro usado quando a auditoria é cancelada — por tempo ou por desistência. */
+export class AuditCancelled extends Error {
+  constructor() {
+    super('Auditoria cancelada.');
+    this.name = 'AuditCancelled';
+  }
+}
+
+/** Interrompe o fluxo entre etapas quando o cancelamento já chegou. */
+function abortIfCancelled(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new AuditCancelled();
+}
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+  signal?: AbortSignal,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(message)), ms);
+    const onAbort = (): void => reject(new AuditCancelled());
+    signal?.addEventListener('abort', onAbort, { once: true });
+
+    const done = (): void => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    };
+
     promise.then(
       (value) => {
-        clearTimeout(timer);
+        done();
         resolve(value);
       },
       (error) => {
-        clearTimeout(timer);
+        done();
         reject(error);
       },
     );

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from '@/i18n';
 import type { PluginResult } from '@/types';
 import { scoreColor } from '@/utils';
 
 defineProps<{ plugin: PluginResult }>();
 
+const { t } = useI18n();
 const open = ref(false);
 </script>
 
@@ -23,10 +25,10 @@ const open = ref(false);
     </button>
 
     <div v-if="open" class="body">
-      <p v-if="plugin.error" class="error">Módulo falhou: {{ plugin.error }}</p>
+      <p v-if="plugin.error" class="error">{{ t.report.moduleFailed }} {{ plugin.error }}</p>
 
       <table v-if="plugin.checks.length">
-        <caption class="sr-only">Verificações do módulo {{ plugin.name }}</caption>
+        <caption class="sr-only">{{ t.report.checksCaption }} {{ plugin.name }}</caption>
         <tbody>
           <tr v-for="c in plugin.checks" :key="c.id">
             <td class="label">{{ c.label }}</td>
@@ -44,7 +46,7 @@ const open = ref(false);
       </table>
 
       <div v-if="plugin.recommendations.length" class="recs">
-        <h4>Recomendações</h4>
+        <h4>{{ t.report.recommendations }}</h4>
         <ul>
           <li v-for="(r, i) in plugin.recommendations" :key="i">{{ r }}</li>
         </ul>

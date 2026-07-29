@@ -176,7 +176,13 @@ const plugin: AuditPlugin = {
           issue({
             id: 'geo-llms-weak',
             title: 'llms.txt com estrutura incompleta',
-            description: `O arquivo existe mas ${!analysis.hasH1 ? 'não tem título H1' : ''}${!analysis.hasH1 && analysis.links < 3 ? ' e ' : ''}${analysis.links < 3 ? `tem apenas ${analysis.links} link(s)` : ''}. Modelos extraem pouco valor dele.`,
+            // Cada variante é uma frase inteira, e não pedaços concatenados:
+            // assim o texto tem tradução própria no catálogo de i18n.
+            description: !analysis.hasH1
+              ? analysis.links < 3
+                ? `O arquivo existe mas não tem título H1 e tem apenas ${analysis.links} link(s). Modelos extraem pouco valor dele.`
+                : 'O arquivo existe mas não tem título H1. Modelos extraem pouco valor dele.'
+              : `O arquivo existe mas tem apenas ${analysis.links} link(s). Modelos extraem pouco valor dele.`,
             severity: 'medium',
             impact: 'medio',
             difficulty: 'facil',

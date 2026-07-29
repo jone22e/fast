@@ -1,4 +1,8 @@
-import { getBrowser } from '../core/browser.js';
+import { beginBrowserUse, endBrowserUse, getBrowser } from '../core/browser.js';
+import { DEFAULT_LANG } from '../i18n/types.js';
+import type { Lang } from '../i18n/types.js';
+import { PDF_TEXTS } from './pdf-texts.js';
+import type { PdfTexts } from './pdf-texts.js';
 import type { AuditReport, CategoryScore, Issue, Severity } from '../core/types.js';
 
 /**
@@ -20,20 +24,12 @@ function scoreColor(score: number): string {
   return '#dc2626';
 }
 
-function scoreLabel(score: number): string {
-  if (score >= 90) return 'Excelente';
-  if (score >= 75) return 'Bom';
-  if (score >= 50) return 'Precisa melhorar';
-  return 'Crítico';
+function scoreLabel(score: number, texts: PdfTexts): string {
+  if (score >= 90) return texts.score.excellent;
+  if (score >= 75) return texts.score.good;
+  if (score >= 50) return texts.score.fair;
+  return texts.score.poor;
 }
-
-const SEVERITY_LABEL: Record<Severity, string> = {
-  critical: 'Crítico',
-  high: 'Alto',
-  medium: 'Médio',
-  low: 'Baixo',
-  info: 'Info',
-};
 
 const SEVERITY_COLOR: Record<Severity, string> = {
   critical: '#dc2626',
@@ -43,17 +39,11 @@ const SEVERITY_COLOR: Record<Severity, string> = {
   info: '#64748b',
 };
 
-const PRIORITY_LABEL: Record<string, string> = {
-  alta: 'Prioridade alta',
-  media: 'Prioridade média',
-  baixa: 'Prioridade baixa',
-};
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
+function formatDuration(minutes: number, texts: PdfTexts): string {
+  if (minutes < 60) return `${minutes} ${texts.minutes}`;
   const hours = minutes / 60;
-  if (hours < 8) return `${hours.toFixed(1).replace('.0', '')} h`;
-  return `${(hours / 8).toFixed(1).replace('.0', '')} dia(s)`;
+  if (hours < 8) return `${hours.toFixed(1).replace('.0', '')} ${texts.hours}`;
+  return `${(hours / 8).toFixed(1).replace('.0', '')} ${texts.days}`;
 }
 
 /** Gráfico de rosca com a nota no centro. */
@@ -86,10 +76,10 @@ function categoryBar(c: CategoryScore): string {
   </div>`;
 }
 
-function issueBlock(issue: Issue, categoryLabel: string): string {
+function issueBlock(issue: Issue, categoryLabel: string, texts: PdfTexts): string {
   const evidences =
     issue.evidence && issue.evidence.length
-      ? `<div class="ev"><span class="ev-h">Evidências</span>${issue.evidence
+      ? `<div class="ev"><span class="ev-h">${texts.evidence}</span>${issue.evidence
           .slice(0, 6)
           .map((e) => `<code>${esc(e)}</code>`)
           .join('')}</div>`
@@ -102,26 +92,26 @@ function issueBlock(issue: Issue, categoryLabel: string): string {
     </div>
     <div class="tags">
       <span class="tag">${esc(categoryLabel)}</span>
-      <span class="tag" style="color:${SEVERITY_COLOR[issue.severity]}">${SEVERITY_LABEL[issue.severity]}</span>
-      <span class="tag">${esc(PRIORITY_LABEL[issue.priority] ?? issue.priority)}</span>
-      <span class="tag">${formatDuration(issue.estimatedMinutes)}</span>
+      <span class="tag" style="color:${SEVERITY_COLOR[issue.severity]}">${texts.severity[issue.severity]}</span>
+      <span class="tag">${esc(texts.priority[issue.priority] ?? issue.priority)}</span>
+      <span class="tag">${formatDuration(issue.estimatedMinutes, texts)}</span>
     </div>
     <p class="issue-desc">${esc(issue.description)}</p>
     <div class="fix">
-      <div><span class="fix-h">Como corrigir</span><p>${esc(issue.howToFix)}</p></div>
-      <div><span class="fix-h">Ganho esperado</span><p>${esc(issue.expectedGain)}</p></div>
+      <div><span class="fix-h">${texts.howToFix}</span><p>${esc(issue.howToFix)}</p></div>
+      <div><span class="fix-h">${texts.expectedGain}</span><p>${esc(issue.expectedGain)}</p></div>
     </div>
     ${evidences}
   </div>`;
 }
 
-function aiSection(report: AuditReport): string {
+function aiSection(report: AuditReport, texts: PdfTexts): string {
   const ai = report.ai;
   if (!ai.available) {
     return `
     <section class="block ai">
-      <h2><span class="ai-badge">IA</span> Visão da Inteligência Artificial</h2>
-      <p class="muted">${esc(ai.error || 'Análise por IA indisponível nesta auditoria.')}</p>
+      <h2><span class="ai-badge">IA</span> ${texts.aiTitle}</h2>
+      <p class="muted">${esc(ai.error || texts.aiUnavailable)}</p>
     </section>`;
   }
 
@@ -143,16 +133,16 @@ function aiSection(report: AuditReport): string {
 
   return `
   <section class="block ai">
-    <h2><span class="ai-badge">IA</span> Visão da Inteligência Artificial</h2>
+    <h2><span class="ai-badge">IA</span> ${texts.aiTitle}</h2>
     <div class="ai-summary">${esc(ai.executiveSummary)}</div>
     <div class="ai-grid">
-      ${ai.mainProblems.length ? `<div class="ai-col"><h3>Principais problemas</h3>${list(ai.mainProblems)}</div>` : ''}
-      ${ai.priorities.length ? `<div class="ai-col"><h3>Ordem de prioridade</h3>${list(ai.priorities, true)}</div>` : ''}
+      ${ai.mainProblems.length ? `<div class="ai-col"><h3>${texts.mainProblems}</h3>${list(ai.mainProblems)}</div>` : ''}
+      ${ai.priorities.length ? `<div class="ai-col"><h3>${texts.priorities}</h3>${list(ai.priorities, true)}</div>` : ''}
     </div>
-    ${ai.impacts ? `<div class="ai-full"><h3>Impacto no negócio</h3><p>${esc(ai.impacts)}</p></div>` : ''}
-    ${ai.estimatedGains ? `<div class="ai-gain"><h3>Ganhos estimados</h3><p>${esc(ai.estimatedGains)}</p></div>` : ''}
-    ${plan ? `<div class="ai-full"><h3>Plano de ação</h3><div class="plan">${plan}</div></div>` : ''}
-    ${ai.technicalNotes.length ? `<div class="ai-full"><h3>Notas técnicas</h3>${list(ai.technicalNotes)}</div>` : ''}
+    ${ai.impacts ? `<div class="ai-full"><h3>${texts.impacts}</h3><p>${esc(ai.impacts)}</p></div>` : ''}
+    ${ai.estimatedGains ? `<div class="ai-gain"><h3>${texts.gains}</h3><p>${esc(ai.estimatedGains)}</p></div>` : ''}
+    ${plan ? `<div class="ai-full"><h3>${texts.actionPlan}</h3><div class="plan">${plan}</div></div>` : ''}
+    ${ai.technicalNotes.length ? `<div class="ai-full"><h3>${texts.technicalNotes}</h3>${list(ai.technicalNotes)}</div>` : ''}
   </section>`;
 }
 
@@ -171,14 +161,15 @@ const LOGO = `<svg width="30" height="30" viewBox="0 0 512 512">
   <circle cx="256" cy="292" r="17" fill="#0e131c" stroke="#e2e8f0" stroke-width="4"/>
 </svg>`;
 
-export function renderHtml(report: AuditReport): string {
+export function renderHtml(report: AuditReport, lang: Lang = DEFAULT_LANG): string {
+  const texts = PDF_TEXTS[lang];
   const geo = report.plugins.find((p) => p.id === 'geo');
   const aiScore = typeof geo?.evidence?.aiScore === 'number' ? (geo.evidence.aiScore as number) : null;
   const categoryLabels = new Map(report.categories.map((c) => [c.category, c.label]));
-  const date = new Date(report.generatedAt).toLocaleString('pt-BR');
+  const date = new Date(report.generatedAt).toLocaleString(texts.locale);
   const categoriesSorted = [...report.categories].sort((a, b) => a.score - b.score);
 
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -260,48 +251,53 @@ export function renderHtml(report: AuditReport): string {
 </style></head><body>
 
   <section class="cover">
-    <div class="brand">${LOGO}<span class="name">FAST</span><span class="kicker">Relatório de auditoria web</span></div>
+    <div class="brand">${LOGO}<span class="name">FAST</span><span class="kicker">${texts.kicker}</span></div>
     <div class="hero">
       <div style="text-align:center">
         ${donut(report.overallScore)}
-        <div class="verdict" style="color:${scoreColor(report.overallScore)}">${scoreLabel(report.overallScore)}</div>
+        <div class="verdict" style="color:${scoreColor(report.overallScore)}">${scoreLabel(report.overallScore, texts)}</div>
       </div>
       <div class="hero-meta">
         <div class="url">${esc(report.finalUrl)}</div>
-        <div class="date">Analisado em ${esc(date)}</div>
+        <div class="date">${texts.analyzedAt} ${esc(date)}</div>
         <div class="stats">
-          <div class="stat"><b>${report.summary.totalIssues}</b><span>Problemas</span></div>
-          <div class="stat"><b style="color:#dc2626">${report.summary.critical}</b><span>Críticos</span></div>
-          <div class="stat"><b style="color:#ea580c">${report.summary.high}</b><span>Altos</span></div>
-          ${aiScore !== null ? `<div class="stat"><b style="color:${scoreColor(aiScore)}">${aiScore}</b><span>IA Score</span></div>` : ''}
-          <div class="stat"><b>${formatDuration(report.summary.estimatedMinutes)}</b><span>de correção</span></div>
+          <div class="stat"><b>${report.summary.totalIssues}</b><span>${texts.stats.issues}</span></div>
+          <div class="stat"><b style="color:#dc2626">${report.summary.critical}</b><span>${texts.stats.critical}</span></div>
+          <div class="stat"><b style="color:#ea580c">${report.summary.high}</b><span>${texts.stats.high}</span></div>
+          ${aiScore !== null ? `<div class="stat"><b style="color:${scoreColor(aiScore)}">${aiScore}</b><span>${texts.stats.aiScore}</span></div>` : ''}
+          <div class="stat"><b>${formatDuration(report.summary.estimatedMinutes, texts)}</b><span>${texts.stats.fixTime}</span></div>
         </div>
       </div>
     </div>
   </section>
 
   <section class="block">
-    <h2>Notas por categoria</h2>
+    <h2>${texts.categories}</h2>
     ${categoriesSorted.map(categoryBar).join('')}
   </section>
 
-  ${aiSection(report)}
+  ${aiSection(report, texts)}
 
   <section class="block cat-page">
-    <h2>Problemas encontrados (${report.issues.length})</h2>
-    ${report.issues.map((i) => issueBlock(i, categoryLabels.get(i.category) ?? i.category)).join('')}
+    <h2>${texts.issuesFound(report.issues.length)}</h2>
+    ${report.issues.map((i) => issueBlock(i, categoryLabels.get(i.category) ?? i.category, texts)).join('')}
   </section>
 
 </body></html>`;
 }
 
 /** Renderiza o relatório em PDF e devolve o buffer. */
-export async function generateReportPdf(report: AuditReport): Promise<Buffer> {
+export async function generateReportPdf(
+  report: AuditReport,
+  lang: Lang = DEFAULT_LANG,
+): Promise<Buffer> {
+  const texts = PDF_TEXTS[lang];
+  beginBrowserUse();
   const browser = await getBrowser();
   const context = await browser.newContext();
   try {
     const page = await context.newPage();
-    await page.setContent(renderHtml(report), { waitUntil: 'networkidle' });
+    await page.setContent(renderHtml(report, lang), { waitUntil: 'networkidle' });
     const host = (() => {
       try {
         return new URL(report.finalUrl).hostname;
@@ -316,12 +312,13 @@ export async function generateReportPdf(report: AuditReport): Promise<Buffer> {
       displayHeaderFooter: true,
       headerTemplate: '<span></span>',
       footerTemplate: `<div style="width:100%;font-size:8px;color:#94a3b8;padding:0 15mm;display:flex;justify-content:space-between;">
-        <span>FAST · Auditoria de ${esc(host)}</span>
-        <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+        <span>${esc(texts.auditOf(host))}</span>
+        <span>${texts.pageOf('<span class="pageNumber"></span>', '<span class="totalPages"></span>')}</span>
       </div>`,
     });
     return Buffer.from(pdf);
   } finally {
     await context.close().catch(() => undefined);
+    endBrowserUse();
   }
 }
