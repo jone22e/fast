@@ -299,6 +299,7 @@ export const es: Messages = {
     pdfError: 'No fue posible generar el PDF. Inténtelo de nuevo.',
     noIssues: 'Sin problemas',
     issuesCount: 'problema(s)',
+    viewDetails: 'Ver detalles',
     issuesTitle: 'Problemas encontrados',
     filterCategory: 'Filtrar por categoría',
     filterSeverity: 'Filtrar por gravedad',

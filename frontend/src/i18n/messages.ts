@@ -107,6 +107,7 @@ export interface Messages {
     pdfError: string;
     noIssues: string;
     issuesCount: string;
+    viewDetails: string;
     issuesTitle: string;
     filterCategory: string;
     filterSeverity: string;

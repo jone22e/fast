@@ -293,6 +293,7 @@ export const pt: Messages = {
     pdfError: 'Não foi possível gerar o PDF. Tente novamente.',
     noIssues: 'Sem problemas',
     issuesCount: 'problema(s)',
+    viewDetails: 'Ver detalhes',
     issuesTitle: 'Problemas encontrados',
     filterCategory: 'Filtrar por categoria',
     filterSeverity: 'Filtrar por gravidade',

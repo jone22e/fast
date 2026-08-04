@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import ActionPlan from './ActionPlan.vue';
 import AiModal from './AiModal.vue';
 import Icon from './Icon.vue';
@@ -37,6 +37,44 @@ const filterCategory = ref<CategoryId | 'all'>('all');
 const filterSeverity = ref<Severity | 'all'>('all');
 const checked = ref<Set<string>>(new Set());
 const aiOpen = ref(false);
+
+/**
+ * URL de exibição: o domínio em evidência, sem protocolo nem barras — a marca
+ * do site é o que importa. O caminho, quando existe, aparece discreto ao lado,
+ * e o cadeado registra que a análise foi servida via HTTPS.
+ */
+const displayUrl = computed(() => {
+  try {
+    const u = new URL(props.report.finalUrl);
+    return {
+      domain: u.hostname.replace(/^www\./, ''),
+      path: `${u.pathname}${u.search}`.replace(/\/$/, ''),
+      secure: u.protocol === 'https:',
+    };
+  } catch {
+    return { domain: props.report.finalUrl, path: '', secure: false };
+  }
+});
+
+/** Instâncias dos módulos, para abrir o detalhamento ao clicar no card da categoria. */
+const moduleRefs = new Map<string, { expand: () => void }>();
+
+function setModuleRef(id: string, el: unknown): void {
+  if (el) moduleRefs.set(id, el as { expand: () => void });
+  else moduleRefs.delete(id);
+}
+
+/** Expande o(s) módulo(s) da categoria e rola até o primeiro deles. */
+function openCategory(category: CategoryId): void {
+  const plugins = props.report.plugins.filter((p) => p.category === category);
+  if (plugins.length === 0) return;
+  for (const p of plugins) moduleRefs.get(p.id)?.expand();
+  void nextTick(() => {
+    document
+      .getElementById(`module-${plugins[0].id}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+}
 
 const categoryLabels = computed(() => {
   const map = new Map<CategoryId, string>();
@@ -161,7 +199,19 @@ async function fetchPdf(): Promise<Blob> {
       </div>
 
       <div class="meta">
-        <h2>{{ report.finalUrl }}</h2>
+        <h2 class="site">
+          <a :href="report.finalUrl" target="_blank" rel="noopener">
+            <svg v-if="displayUrl.secure" class="site-lock" width="17" height="17" viewBox="0 0 15 15" aria-hidden="true">
+              <rect x="3" y="6.6" width="9" height="6.2" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.3" />
+              <path d="M5.1 6.6V4.9a2.4 2.4 0 014.8 0v1.7" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+            </svg>
+            <span class="site-domain">{{ displayUrl.domain }}</span>
+            <span v-if="displayUrl.path" class="site-path">{{ displayUrl.path }}</span>
+            <svg class="site-ext" width="13" height="13" viewBox="0 0 15 15" aria-hidden="true">
+              <path d="M5.5 3.5h6v6M11.2 3.8L4 11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </h2>
         <p class="muted">
           {{ t.report.analyzedAt }} {{ new Date(report.generatedAt).toLocaleString(lang) }} ·
           {{ formatMs(report.durationMs) }} {{ t.report.runtime }}
@@ -208,11 +258,12 @@ async function fetchPdf(): Promise<Blob> {
 
     <!-- ---------- Notas por categoria ---------- -->
     <section class="categories">
-      <article
+      <button
         v-for="c in report.categories"
         :key="c.category"
         class="cat card"
         :style="{ '--cat-color': scoreColor(c.score) }"
+        @click="openCategory(c.category)"
       >
         <div class="cat-head">
           <span class="cat-name">
@@ -224,10 +275,18 @@ async function fetchPdf(): Promise<Blob> {
         <div class="cat-bar">
           <span :style="{ width: `${c.score}%` }"></span>
         </div>
-        <span class="cat-issues">
-          {{ c.issueCount === 0 ? t.report.noIssues : `${c.issueCount} ${t.report.issuesCount}` }}
+        <span class="cat-foot">
+          <span class="cat-issues">
+            {{ c.issueCount === 0 ? t.report.noIssues : `${c.issueCount} ${t.report.issuesCount}` }}
+          </span>
+          <span class="cat-view">
+            {{ t.report.viewDetails }}
+            <svg width="11" height="11" viewBox="0 0 15 15" aria-hidden="true">
+              <path d="M5 3l5 4.5L5 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
         </span>
-      </article>
+      </button>
     </section>
 
     <!-- ---------- Gatilho da análise por IA ---------- -->
@@ -293,7 +352,13 @@ async function fetchPdf(): Promise<Blob> {
       <h2><Icon name="layers" :size="19" /> {{ t.report.modulesTitle }}</h2>
       <p class="muted">{{ t.report.modulesIntro }}</p>
       <div class="module-list">
-        <ModuleDetail v-for="p in report.plugins" :key="p.id" :plugin="p" />
+        <ModuleDetail
+          v-for="p in report.plugins"
+          :id="`module-${p.id}`"
+          :key="p.id"
+          :ref="(el) => setModuleRef(p.id, el)"
+          :plugin="p"
+        />
       </div>
     </section>
 
@@ -486,10 +551,56 @@ async function fetchPdf(): Promise<Blob> {
   min-width: 280px;
 }
 
-.meta h2 {
-  font-size: 19px;
-  word-break: break-all;
+.site {
   margin-bottom: 4px;
+}
+
+.site a {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  color: var(--text);
+}
+
+.site a:hover {
+  text-decoration: none;
+}
+
+.site-lock {
+  color: var(--good);
+  flex-shrink: 0;
+}
+
+.site-domain {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  word-break: break-all;
+  transition: color 0.15s;
+}
+
+.site a:hover .site-domain {
+  color: var(--accent);
+}
+
+.site-path {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.site-ext {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.site a:hover .site-ext {
+  opacity: 1;
 }
 
 .meta > p {
@@ -573,16 +684,16 @@ async function fetchPdf(): Promise<Blob> {
 }
 
 .cat {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
   transition: border-color 0.2s, transform 0.2s;
 }
 
 .cat:hover {
   border-color: var(--border-strong);
   transform: translateY(-2px);
-}
-
-.cat {
-  padding: 16px 18px;
 }
 
 .cat-head {
@@ -628,9 +739,34 @@ async function fetchPdf(): Promise<Blob> {
   transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.cat-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .cat-issues {
   font-size: 12px;
   color: var(--text-dim);
+}
+
+.cat-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cat-color);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.cat:hover .cat-view,
+.cat:focus-visible .cat-view {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ---------- problemas ---------- */

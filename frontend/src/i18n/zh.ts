@@ -290,6 +290,7 @@ export const zh: Messages = {
     pdfError: 'PDF 生成失败，请重试。',
     noIssues: '没有问题',
     issuesCount: '个问题',
+    viewDetails: '查看详情',
     issuesTitle: '发现的问题',
     filterCategory: '按类别筛选',
     filterSeverity: '按严重程度筛选',

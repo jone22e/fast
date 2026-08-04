@@ -8,6 +8,13 @@ defineProps<{ plugin: PluginResult }>();
 
 const { t } = useI18n();
 const open = ref(false);
+
+/** Abre o detalhamento a partir de fora (clique no card da categoria). */
+function expand(): void {
+  open.value = true;
+}
+
+defineExpose({ expand });
 </script>
 
 <template>
@@ -61,6 +68,8 @@ const open = ref(false);
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   overflow: hidden;
+  /* Ao rolar até o módulo, o cabeçalho fixo + a barra de ações não podem cobri-lo. */
+  scroll-margin-top: 118px;
 }
 
 .head {
