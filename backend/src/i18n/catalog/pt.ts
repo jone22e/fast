@@ -155,6 +155,7 @@ export const pt: LangCatalog = {
       'sql-error-leak': 'Sem vazamento de erros de banco',
       'no-stacktrace': 'Sem stack traces expostos',
       'param-surface': 'Superfície de parâmetros controlada',
+      'no-exposed-files': 'Sem arquivos sensíveis acessíveis',
       'no-exposed-secrets': 'Sem chaves/segredos no código servido',
       'password-transport': 'Transporte seguro de senha',
       'security-txt': 'security.txt (política de divulgação)',
@@ -635,6 +636,12 @@ export const pt: LangCatalog = {
         description: 'A página revela um rastreamento de pilha (stack trace). Ele expõe caminhos de arquivos, nomes de funções internas, bibliotecas e versões — informação valiosa para um atacante montar a exploração, e um sinal de que o tratamento de erros está desligado ou mal configurado.',
         fix: 'Desative a exibição de erros detalhados em produção e configure uma página de erro 500 genérica. Registre o detalhe apenas no log do servidor.',
         gain: 'Elimina o vazamento de detalhes internos da aplicação.',
+      },
+      'prot-exposed-file': {
+        title: 'Arquivo sensível acessível publicamente: {0}',
+        description: 'Um ou mais arquivos que nunca deveriam ser públicos respondem diretamente pela web. Arquivos como .env, .git, dumps de banco ou backups de configuração entregam credenciais, chaves de API, strings de conexão — e, no caso do .git, o código-fonte completo do site. Qualquer visitante ou robô que peça a URL recebe o conteúdo; é uma das exposições mais visadas por varreduras automatizadas.',
+        fix: 'Passo a passo: (1) bloqueie o acesso a esses caminhos no servidor — no nginx, `location ~ /\\.(?!well-known) { deny all; }` cobre dotfiles como .env e .git; adicione regras negando *.sql, *.bak, *.old e *.save; (2) tire dumps e backups do diretório público (nunca devem ficar no docroot); (3) se um .env, chave ou credencial foi servido, trate-o como COMPROMETIDO: revogue e gere novas credenciais; (4) se o .git estava exposto, todo o histórico pode ter sido clonado — troque qualquer segredo que já passou pelo repositório.',
+        gain: 'Fecha o acesso direto a credenciais, código-fonte e dados — a exposição de maior impacto e mais fácil de explorar.',
       },
       'prot-exposed-secret': {
         title: 'Segredo exposto no código: {0}',

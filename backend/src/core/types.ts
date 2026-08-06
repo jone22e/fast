@@ -195,6 +195,8 @@ export interface AuditContext {
   /** /.well-known/security.txt (RFC 9116) — política de divulgação responsável. */
   securityTxt: FetchedText | null;
   sitemaps: SitemapInfo[];
+  /** Arquivos sensíveis (.env, .git, dumps, backups) acessíveis publicamente. */
+  exposedPaths: ExposedFile[];
   /** Dados extraídos do DOM renderizado. */
   dom: DomSnapshot;
   /** Cookies definidos pela página. */
@@ -214,6 +216,20 @@ export interface FetchedText {
   encoding: string | null;
   sizeBytes: number;
   text: string;
+}
+
+/** Arquivo sensível que respondeu diretamente pela web (exposição confirmada). */
+export interface ExposedFile {
+  /** Caminho sondado, relativo à origem (ex.: /.env, /.git/config). */
+  path: string;
+  /** Rótulo legível do tipo de arquivo. */
+  label: string;
+  severity: 'critical' | 'high' | 'medium';
+  /** Status HTTP da resposta (200 ou 206). */
+  status: number;
+  /** Tamanho total do arquivo em bytes (do Content-Range/Length quando disponível). */
+  sizeBytes: number;
+  contentType: string | null;
 }
 
 export interface SitemapInfo {

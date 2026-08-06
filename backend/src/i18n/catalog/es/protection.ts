@@ -12,6 +12,7 @@ export const protection: PluginCatalog = {
     'sql-error-leak': 'Sin filtración de errores de base de datos',
     'no-stacktrace': 'Sin stack traces expuestos',
     'param-surface': 'Superficie de parámetros controlada',
+    'no-exposed-files': 'Sin archivos sensibles accesibles',
     'no-exposed-secrets': 'Sin claves/secretos en el código servido',
     'password-transport': 'Transporte seguro de contraseñas',
     'security-txt': 'security.txt (política de divulgación)',
@@ -55,6 +56,13 @@ export const protection: PluginCatalog = {
         'La página revela un rastreo de pila (stack trace). Expone rutas de archivos, nombres de funciones internas, bibliotecas y versiones: información valiosa para que un atacante arme la explotación, y una señal de que el manejo de errores está desactivado o mal configurado.',
       fix: 'Desactive la salida detallada de errores en producción y configure una página de error 500 genérica. Registre el detalle solo en el log del servidor.',
       gain: 'Elimina la filtración de detalles internos de la aplicación.',
+    },
+    'prot-exposed-file': {
+      title: 'Archivo sensible accesible públicamente: {0}',
+      description:
+        'Uno o más archivos que nunca deberían ser públicos responden directamente por la web. Archivos como .env, .git, volcados de base de datos o copias de configuración entregan credenciales, claves de API, cadenas de conexión — y, en el caso de .git, el código fuente completo del sitio. Cualquier visitante o robot que pida la URL recibe el contenido; es una de las exposiciones más buscadas por los escáneres automatizados.',
+      fix: 'Paso a paso: (1) bloquee el acceso a esas rutas en el servidor — en nginx, `location ~ /\\.(?!well-known) { deny all; }` cubre archivos ocultos como .env y .git; agregue reglas que nieguen *.sql, *.bak, *.old y *.save; (2) saque volcados y copias del directorio público (nunca deben estar en el docroot); (3) si se sirvió un .env, clave o credencial, trátelo como COMPROMETIDO: revóquelo y genere nuevas credenciales; (4) si .git quedó expuesto, todo el historial pudo ser clonado — rote cualquier secreto que haya pasado por el repositorio.',
+      gain: 'Cierra el acceso directo a credenciales, código fuente y datos — la exposición de mayor impacto y más fácil de explotar.',
     },
     'prot-exposed-secret': {
       title: 'Secreto expuesto en el código: {0}',

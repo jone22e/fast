@@ -12,6 +12,7 @@ export const protection: PluginCatalog = {
     'sql-error-leak': 'No database errors leaking',
     'no-stacktrace': 'No stack traces exposed',
     'param-surface': 'Controlled parameter surface',
+    'no-exposed-files': 'No sensitive files accessible',
     'no-exposed-secrets': 'No keys/secrets in the served code',
     'password-transport': 'Secure password transport',
     'security-txt': 'security.txt (disclosure policy)',
@@ -55,6 +56,13 @@ export const protection: PluginCatalog = {
         'The page reveals a stack trace. It exposes file paths, internal function names, libraries and versions — valuable information for an attacker building an exploit, and a sign that error handling is off or misconfigured.',
       fix: 'Disable detailed error output in production and configure a generic 500 error page. Log the detail only on the server.',
       gain: 'Eliminates the leak of internal application details.',
+    },
+    'prot-exposed-file': {
+      title: 'Sensitive file publicly accessible: {0}',
+      description:
+        'One or more files that should never be public respond directly over the web. Files such as .env, .git, database dumps or configuration backups hand over credentials, API keys, connection strings — and, in the case of .git, the site’s full source code. Any visitor or bot that requests the URL receives the content; it is one of the exposures most targeted by automated scanners.',
+      fix: 'Step by step: (1) block access to these paths on the server — on nginx, `location ~ /\\.(?!well-known) { deny all; }` covers dotfiles like .env and .git; add rules denying *.sql, *.bak, *.old and *.save; (2) move dumps and backups out of the public directory (they should never sit in the docroot); (3) if a .env, key or credential was served, treat it as COMPROMISED: revoke it and issue new credentials; (4) if .git was exposed, the entire history may have been cloned — rotate any secret that ever passed through the repository.',
+      gain: 'Closes direct access to credentials, source code and data — the highest-impact exposure and the easiest to exploit.',
     },
     'prot-exposed-secret': {
       title: 'Secret exposed in the code: {0}',

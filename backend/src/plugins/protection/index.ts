@@ -1,6 +1,6 @@
 import { scoreFromChecks } from '../../core/scoring.js';
 import type { AuditContext, AuditPlugin, Check, PluginIssue } from '../../core/types.js';
-import { check, issue } from '../helpers.js';
+import { check, formatBytes, issue } from '../helpers.js';
 
 /**
  * Módulo Proteção & Exposição.
@@ -171,7 +171,7 @@ const plugin: AuditPlugin = {
   id: 'protection',
   name: 'Proteção & Exposição',
   description:
-    'Avaliação passiva da postura de segurança: WAF/firewall, exposição do IP externo de origem, vazamento de chaves e senhas no código, suscetibilidade a SQL injection, transporte de senha e política de divulgação.',
+    'Avaliação passiva da postura de segurança: WAF/firewall, exposição do IP externo de origem, arquivos sensíveis acessíveis (.env, .git, dumps), vazamento de chaves e senhas no código, suscetibilidade a SQL injection, transporte de senha e política de divulgação.',
   category: 'protection',
   weight: 2.5,
   checks: [
@@ -179,6 +179,7 @@ const plugin: AuditPlugin = {
     'IP externo de origem oculto (CDN/proxy)',
     'Sem vazamento de IP interno',
     'Sem divulgação de versão/tecnologia',
+    'Sem arquivos sensíveis acessíveis',
     'Sem chaves/segredos no código servido',
     'Sem senha hardcoded',
     'Transporte seguro de senha (HTTPS, POST)',
@@ -587,13 +588,55 @@ const plugin: AuditPlugin = {
       );
     }
 
+    // =====================================================================
+    // 7. Arquivos sensíveis acessíveis publicamente (.env, .git, dumps, backups)
+    // =====================================================================
+    // Sondagem feita no coletor: GET a caminhos conhecidos, confirmando por
+    // assinatura de conteúdo que a resposta é MESMO o arquivo (e não um HTML de
+    // fallback). Mesma natureza da busca por robots.txt/security.txt — nenhum
+    // payload de ataque é enviado.
+    const exposedFiles = ctx.exposedPaths ?? [];
+    const criticalFiles = exposedFiles.filter((f) => f.severity === 'critical');
+    checks.push(
+      check(
+        'no-exposed-files',
+        'Sem arquivos sensíveis acessíveis',
+        exposedFiles.length === 0 ? 1 : 0,
+        3,
+        exposedFiles.length > 0 ? `${exposedFiles.length} arquivo(s)` : 'ok',
+      ),
+    );
+
+    if (exposedFiles.length > 0) {
+      issues.push(
+        issue({
+          id: 'prot-exposed-file',
+          title: `Arquivo sensível acessível publicamente: ${exposedFiles.map((f) => f.path).join(', ')}`,
+          description:
+            'Um ou mais arquivos que nunca deveriam ser públicos respondem diretamente pela web. Arquivos como .env, .git, dumps de banco ou backups de configuração entregam credenciais, chaves de API, strings de conexão — e, no caso do .git, o código-fonte completo do site. Qualquer visitante ou robô que peça a URL recebe o conteúdo; é uma das exposições mais visadas por varreduras automatizadas.',
+          severity: criticalFiles.length > 0 ? 'critical' : 'high',
+          impact: 'alto',
+          difficulty: 'facil',
+          minutes: 30,
+          fix:
+            'Passo a passo: (1) bloqueie o acesso a esses caminhos no servidor — no nginx, `location ~ /\\.(?!well-known) { deny all; }` cobre dotfiles como .env e .git; adicione regras negando *.sql, *.bak, *.old e *.save; (2) tire dumps e backups do diretório público (nunca devem ficar no docroot); (3) se um .env, chave ou credencial foi servido, trate-o como COMPROMETIDO: revogue e gere novas credenciais; (4) se o .git estava exposto, todo o histórico pode ter sido clonado — troque qualquer segredo que já passou pelo repositório.',
+          gain: 'Fecha o acesso direto a credenciais, código-fonte e dados — a exposição de maior impacto e mais fácil de explorar.',
+          evidence: exposedFiles.map(
+            (f) => `${f.path} → HTTP ${f.status} (${f.label}${f.sizeBytes ? `, ${formatBytes(f.sizeBytes)}` : ''})`,
+          ),
+        }),
+      );
+    }
+
     return {
       score: scoreFromChecks(checks),
       checks,
       issues,
       recommendations,
       evidence: {
-        methodology: 'Detecção passiva — nenhum payload de ataque é enviado ao site auditado.',
+        methodology:
+          'Detecção passiva — nenhum payload de ataque é enviado; a sondagem de arquivos usa apenas requisições GET a caminhos conhecidos.',
+        exposedFiles: exposedFiles.map((f) => `${f.path} (${f.label}, HTTP ${f.status})`),
         wafDetected: [...detectedWafs],
         originProtected: hasProxy,
         originExposed,

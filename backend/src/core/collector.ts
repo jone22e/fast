@@ -8,6 +8,7 @@ import { VITALS_INIT_SCRIPT, collectMetrics, extractDom, measureViewport } from 
 import type {
   AuditContext,
   CookieInfo,
+  ExposedFile,
   FetchedText,
   NetworkInfo,
   NetworkResource,
@@ -68,6 +69,234 @@ async function fetchText(url: string, timeoutMs = 12_000): Promise<FetchedText |
   } finally {
     clearTimeout(timer);
   }
+}
+
+// ===========================================================================
+// Sondagem de arquivos sensíveis expostos
+// ===========================================================================
+// Requisita, por GET, caminhos conhecidos que nunca deveriam ser públicos
+// (.env, .git, dumps, backups, credenciais). É a MESMA natureza da busca por
+// robots.txt/security.txt — nenhum payload de ataque, apenas o pedido de uma
+// URL. A confirmação é por ASSINATURA DE CONTEÚDO: um 200 não basta, porque
+// SPAs e páginas de erro devolvem 200 + index.html para qualquer rota; só
+// contamos como exposição quando o corpo é reconhecidamente o arquivo.
+
+interface ProbeResult {
+  status: number;
+  finalOrigin: string | null;
+  contentType: string | null;
+  /** Primeiros ~16 KB do corpo, decodificados como utf8. */
+  body: string;
+  /** Tamanho total do arquivo (do Content-Range/Length quando disponível). */
+  totalBytes: number;
+}
+
+/** Lê no máximo `cap` bytes do corpo, mesmo que o servidor ignore o Range. */
+async function readCapped(res: Response, cap: number): Promise<Buffer> {
+  const reader = res.body?.getReader();
+  if (!reader) return Buffer.from(await res.arrayBuffer()).subarray(0, cap);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < cap) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        total += value.length;
+      }
+    }
+  } finally {
+    void reader.cancel().catch(() => undefined);
+  }
+  return Buffer.concat(chunks).subarray(0, cap);
+}
+
+async function fetchProbe(url: string, origin: string, timeoutMs = 8_000): Promise<ProbeResult | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+      headers: { 'user-agent': USER_AGENT, accept: '*/*', range: 'bytes=0-16383' },
+    });
+    let finalOrigin: string | null = null;
+    try {
+      finalOrigin = new URL(res.url || url).origin;
+    } catch {
+      finalOrigin = null;
+    }
+    // Só respostas diretas (200/206) na PRÓPRIA origem interessam. Um
+    // redirecionamento para outro host (login, home) não expõe o arquivo.
+    if ((res.status !== 200 && res.status !== 206) || finalOrigin !== origin) {
+      void res.body?.cancel().catch(() => undefined);
+      return { status: res.status, finalOrigin, contentType: res.headers.get('content-type'), body: '', totalBytes: 0 };
+    }
+    const buf = await readCapped(res, 16_384);
+    const rangeTotal = res.headers.get('content-range')?.split('/')?.[1];
+    const total = Number(rangeTotal ?? res.headers.get('content-length') ?? buf.byteLength);
+    return {
+      status: res.status,
+      finalOrigin,
+      contentType: res.headers.get('content-type'),
+      body: buf.toString('utf8'),
+      totalBytes: Number.isFinite(total) && total > 0 ? total : buf.byteLength,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Um HTML (SPA fallback, login, página de erro) nunca é o arquivo sensível. */
+function looksHtml(b: string): boolean {
+  return /<(?:!doctype\s+html|html[\s>]|head[\s>]|body[\s>]|title[\s>])/i.test(b.slice(0, 1500));
+}
+
+/** Assinatura de um arquivo de variáveis de ambiente (.env e variações). */
+function isEnvFile(b: string): boolean {
+  if (looksHtml(b)) return false;
+  const sensitive =
+    /(?:^|\n)\s*(?:export\s+)?[A-Z0-9_]*(?:SECRET|PASSWORD|PASSWD|API[_-]?KEY|APIKEY|TOKEN|PRIVATE[_-]?KEY|ACCESS[_-]?KEY|DATABASE_URL|DB_(?:PASS|PASSWORD|HOST|USER|NAME)|AWS_|APP_KEY|MAIL_|SMTP_|STRIPE_|JWT_)[A-Z0-9_]*\s*=/i.test(b);
+  const assignments = (b.match(/^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_.]*\s*=/gm) ?? []).length;
+  return sensitive || assignments >= 3;
+}
+
+/** Assinatura de um dump SQL. */
+function isSqlDump(b: string): boolean {
+  return /(?:CREATE TABLE|INSERT INTO|DROP TABLE IF EXISTS|-- MySQL dump|-- PostgreSQL database dump|CREATE DATABASE|LOCK TABLES)/i.test(
+    b,
+  );
+}
+
+interface ExposedProbe {
+  path: string;
+  label: string;
+  severity: 'critical' | 'high' | 'medium';
+  validate: (body: string, contentType: string | null) => boolean;
+}
+
+const EXPOSED_PROBES: ExposedProbe[] = [
+  { path: '/.env', label: 'Variáveis de ambiente (.env)', severity: 'critical', validate: isEnvFile },
+  { path: '/.env.local', label: 'Variáveis de ambiente (.env.local)', severity: 'critical', validate: isEnvFile },
+  { path: '/.env.production', label: 'Variáveis de ambiente (.env.production)', severity: 'critical', validate: isEnvFile },
+  { path: '/.env.bak', label: 'Backup de variáveis de ambiente (.env.bak)', severity: 'critical', validate: isEnvFile },
+  {
+    path: '/.git/config',
+    label: 'Repositório Git exposto (.git/config)',
+    severity: 'critical',
+    validate: (b) => /\[core\]/.test(b) && /repositoryformatversion/i.test(b),
+  },
+  {
+    path: '/.git/HEAD',
+    label: 'Repositório Git exposto (.git/HEAD)',
+    severity: 'high',
+    validate: (b) => /^\s*ref:\s*refs\//m.test(b),
+  },
+  {
+    path: '/.svn/wc.db',
+    label: 'Repositório SVN exposto (.svn/wc.db)',
+    severity: 'high',
+    validate: (b) => b.startsWith('SQLite format 3'),
+  },
+  {
+    path: '/.aws/credentials',
+    label: 'Credenciais AWS (.aws/credentials)',
+    severity: 'critical',
+    validate: (b) => /aws_secret_access_key/i.test(b),
+  },
+  {
+    path: '/.ssh/id_rsa',
+    label: 'Chave SSH privada (.ssh/id_rsa)',
+    severity: 'critical',
+    validate: (b) => /-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----/.test(b),
+  },
+  {
+    path: '/.npmrc',
+    label: 'Token npm (.npmrc)',
+    severity: 'high',
+    validate: (b) => /_authToken\s*=|_auth\s*=|:_password\s*=/i.test(b),
+  },
+  {
+    path: '/wp-config.php.bak',
+    label: 'Configuração WordPress (wp-config.php.bak)',
+    severity: 'critical',
+    validate: (b) => /<\?php/.test(b) && /DB_(?:PASSWORD|NAME|USER)/.test(b),
+  },
+  {
+    path: '/config.php.bak',
+    label: 'Configuração PHP (config.php.bak)',
+    severity: 'critical',
+    validate: (b) => /<\?php/.test(b) && /(?:db_pass|password|passwd|mysqli?_connect)/i.test(b),
+  },
+  { path: '/backup.sql', label: 'Dump de banco de dados (backup.sql)', severity: 'high', validate: isSqlDump },
+  { path: '/dump.sql', label: 'Dump de banco de dados (dump.sql)', severity: 'high', validate: isSqlDump },
+  { path: '/database.sql', label: 'Dump de banco de dados (database.sql)', severity: 'high', validate: isSqlDump },
+  {
+    path: '/.htpasswd',
+    label: 'Credenciais HTTP (.htpasswd)',
+    severity: 'high',
+    validate: (b) => !looksHtml(b) && /^[^:\s]{1,64}:(?:\$(?:apr1|2[aby]|1|5|6)\$|\{SHA\}|[A-Za-z0-9./]{13}$)/m.test(b),
+  },
+  {
+    path: '/.DS_Store',
+    label: 'Índice de arquivos macOS (.DS_Store)',
+    severity: 'medium',
+    validate: (b) => b.includes('Bud1'),
+  },
+  {
+    path: '/phpinfo.php',
+    label: 'phpinfo() exposto',
+    severity: 'medium',
+    validate: (b) => /phpinfo\(\)|<title>phpinfo\(\)|PHP Version\s*<\/td>/i.test(b),
+  },
+  {
+    path: '/docker-compose.yml',
+    label: 'docker-compose.yml exposto',
+    severity: 'medium',
+    validate: (b) => !looksHtml(b) && /^services:\s*$/m.test(b),
+  },
+  {
+    path: '/server-status',
+    label: 'Apache server-status exposto',
+    severity: 'medium',
+    validate: (b) => /Apache Server Status|<title>Apache Status/i.test(b),
+  },
+];
+
+// Caminho improvável usado como controle: se ele responder 200 com corpo, o
+// servidor tem um catch-all e comparamos os corpos para não marcar exposição
+// onde tudo devolve a mesma página.
+const PROBE_CONTROL_PATH = '/fast-probe-4f7a2e91-should-not-exist.txt';
+
+/** Sonda os caminhos sensíveis e devolve apenas as exposições confirmadas. */
+async function probeExposedFiles(origin: string, report: (message: string) => void): Promise<ExposedFile[]> {
+  report('Sondando arquivos sensíveis expostos (.env, .git, backups)…');
+
+  const control = await fetchProbe(`${origin}${PROBE_CONTROL_PATH}`, origin);
+  const catchAllBody = control && control.status === 200 && control.body ? control.body.slice(0, 4096) : null;
+
+  const found = await Promise.all(
+    EXPOSED_PROBES.map(async (probe): Promise<ExposedFile | null> => {
+      const r = await fetchProbe(`${origin}${probe.path}`, origin);
+      if (!r || (r.status !== 200 && r.status !== 206) || !r.body) return null;
+      // Servidor com catch-all 200 idêntico → não é exposição real.
+      if (catchAllBody && r.body.slice(0, 4096) === catchAllBody) return null;
+      if (!probe.validate(r.body, r.contentType)) return null;
+      return {
+        path: probe.path,
+        label: probe.label,
+        severity: probe.severity,
+        status: r.status,
+        sizeBytes: r.totalBytes,
+        contentType: r.contentType,
+      };
+    }),
+  );
+
+  return found.filter((x): x is ExposedFile => x !== null);
 }
 
 /** Campos do certificado podem vir como string ou lista; normaliza para string. */
@@ -427,7 +656,7 @@ async function collectPage(
 
   // ---- Arquivos auxiliares, DNS e TLS -------------------------------------
   report('Verificando robots.txt, llms.txt, security.txt, sitemap, DNS e TLS…');
-  const [robotsTxt, llmsTxt, llmsFullTxt, securityTxt, securityTxtRoot, dnsResult, tlsResult] =
+  const [robotsTxt, llmsTxt, llmsFullTxt, securityTxt, securityTxtRoot, dnsResult, tlsResult, exposedPaths] =
     await Promise.all([
       fetchText(`${origin}/robots.txt`),
       fetchText(`${origin}/llms.txt`),
@@ -436,6 +665,7 @@ async function collectPage(
       fetchText(`${origin}/security.txt`),
       inspectDns(target.hostname),
       target.protocol === 'https:' ? inspectTls(target.hostname) : Promise.resolve(null),
+      probeExposedFiles(origin, report),
     ]);
 
   // A localização canônica é /.well-known/security.txt; /security.txt é fallback.
@@ -475,6 +705,7 @@ async function collectPage(
     llmsFullTxt,
     securityTxt: security,
     sitemaps,
+    exposedPaths,
     dom,
     cookies,
     consoleErrors: desktopNav.consoleErrors,

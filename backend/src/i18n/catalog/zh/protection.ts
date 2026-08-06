@@ -12,6 +12,7 @@ export const protection: PluginCatalog = {
     'sql-error-leak': '未泄露数据库错误',
     'no-stacktrace': '未暴露堆栈信息',
     'param-surface': '参数暴露面可控',
+    'no-exposed-files': '无可访问的敏感文件',
     'no-exposed-secrets': '对外代码中无密钥/机密',
     'password-transport': '口令传输安全',
     'security-txt': 'security.txt（漏洞披露政策）',
@@ -55,6 +56,13 @@ export const protection: PluginCatalog = {
         '页面暴露了调用堆栈，其中包含文件路径、内部函数名、依赖库与版本——这些都是攻击者构造利用链的宝贵信息，也说明错误处理被关闭或配置有误。',
       fix: '在生产环境关闭详细错误输出，配置通用的 500 错误页，详细信息只写入服务器日志。',
       gain: '消除应用内部细节的泄露。',
+    },
+    'prot-exposed-file': {
+      title: '敏感文件可被公开访问：{0}',
+      description:
+        '一个或多个本不应公开的文件正通过网络直接对外响应。.env、.git、数据库转储或配置备份等文件会交出凭据、API 密钥、连接字符串——就 .git 而言，还包括站点的完整源代码。任何访客或机器人只要请求该 URL 就能拿到内容；这是自动化扫描最常盯上的暴露之一。',
+      fix: '分步操作：(1) 在服务器上封禁这些路径——nginx 中 `location ~ /\\.(?!well-known) { deny all; }` 可覆盖 .env、.git 等隐藏文件；再加规则拒绝 *.sql、*.bak、*.old 与 *.save；(2) 把转储和备份移出公开目录（绝不应放在 docroot 中）；(3) 若某个 .env、密钥或凭据已被对外提供，请视为已泄露：吊销并签发新凭据；(4) 若 .git 已暴露，整个历史都可能被克隆——凡是经过该仓库的机密都应轮换。',
+      gain: '切断对凭据、源代码与数据的直接访问——影响最大、也最易被利用的暴露。',
     },
     'prot-exposed-secret': {
       title: '代码中暴露了机密：{0}',
